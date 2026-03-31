@@ -1,0 +1,90 @@
+# JARVIS Core - Docker Compose Configuration
+# Main compose file for all JARVIS services
+
+version: '3.8'
+
+services:
+  # OpenClaw Gateway - Central orchestrator
+  openclaw-gateway:
+    image: openclaw:local
+    container_name: jarvis-gateway
+    ports:
+      - "18789:18789"  # HTTP/WebSocket
+      - "18790:18790"  # Internal
+      - "18791:18791"  # Browser control
+    volumes:
+      - openclaw-config:/home/node/.openclaw
+      - openclaw-data:/data
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - jarvis-network
+
+  # GitHub MCP Server
+  mcp-github:
+    image: node:20-slim
+    container_name: jarvis-mcp-github
+    command: npx -y @modelcontextprotocol/server-github
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+    restart: unless-stopped
+    networks:
+      - jarvis-network
+    profiles:
+      - mcp
+
+  # Notion MCP Server
+  mcp-notion:
+    image: node:20-slim
+    container_name: jarvis-mcp-notion
+    command: npx -y @notionhq/notion-mcp-server
+    environment:
+      - NOTION_API_KEY=${NOTION_API_KEY}
+    restart: unless-stopped
+    networks:
+      - jarvis-network
+    profiles:
+      - mcp
+
+  # Vercel MCP Server
+  mcp-vercel:
+    image: node:20-slim
+    container_name: jarvis-mcp-vercel
+    command: npx -y @vercel/mcp-server
+    environment:
+      - VERCEL_TOKEN=${VERCEL_TOKEN}
+    restart: unless-stopped
+    networks:
+      - jarvis-network
+    profiles:
+      - mcp
+
+  # Browser MCP Server
+  mcp-browser:
+    image: node:20-slim
+    container_name: jarvis-mcp-browser
+    command: npx -y @anthropic/mcp-server-browser
+    restart: unless-stopped
+    networks:
+      - jarvis-network
+    profiles:
+      - mcp
+
+volumes:
+  openclaw-config:
+    name: jarvis-openclaw-config
+  openclaw-data:
+    name: jarvis-openclaw-data
+
+networks:
+  jarvis-network:
+    name: jarvis-network
+    driver: bridge

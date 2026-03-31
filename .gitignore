@@ -1,0 +1,70 @@
+# JARVIS Core - Git Ignore
+# Protect sensitive files and unnecessary directories
+
+# ===========================================
+# SENSITIVE FILES (NEVER COMMIT)
+# ===========================================
+.env
+.env.local
+.env.production
+*.key
+*.pem
+*.p12
+
+# OpenClaw config backups
+config/openclaw.json.bak
+config/*.bak
+
+# ===========================================
+# DEPENDENCIES
+# ===========================================
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# ===========================================
+# IDE & EDITOR
+# ===========================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ===========================================
+# LOGS
+# ===========================================
+*.log
+/tmp/
+/logs/
+npm-debug.log*
+
+# ===========================================
+# DOCKER
+# ===========================================
+# Docker volumes are mounted, not stored in repo
+volumes/
+
+# ===========================================
+# BUILD OUTPUT
+# ===========================================
+dist/
+build/
+*.tgz
+*.tar.gz
+
+# ===========================================
+# COVERAGE & TESTING
+# ===========================================
+coverage/
+.nyc_output/
+
+# ===========================================
+# MISC
+# ===========================================
+*.cache
+.local/

@@ -1,0 +1,101 @@
+# JARVIS Model Routing Configuration
+# Source of truth for model selection and fallback chains
+
+# Default model for all tasks
+default_model: "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
+
+# Model aliases for easy reference
+aliases:
+  planner: "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
+  coder: "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
+  office: "openrouter/minimax/minimax-m2.5:free"
+  fast: "openrouter/glm-5-turbo"
+  fallback: "openrouter/minimax/minimax-m2.5:free"
+
+# Task-specific routing
+routing:
+  # Planning, audit, master docs, scope adherence
+  planning:
+    primary: "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
+    fallback:
+      - "openrouter/glm-5-turbo"
+      - "openrouter/minimax/minimax-m2.5:free"
+    description: "Strict planning, multi-agent coherence, long-horizon reasoning"
+
+  # Implementation, architecture, production engineering
+  coding:
+    primary: "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
+    fallback:
+      - "openrouter/minimax/minimax-m2.5:free"
+      - "openrouter/glm-5-turbo"
+    description: "SWE-Bench tasks, code generation, architecture adherence"
+
+  # Office automation, Word/Excel/PPT, tool-heavy steps
+  office:
+    primary: "openrouter/minimax/minimax-m2.5:free"
+    fallback:
+      - "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
+    description: "80.2% SWE-Bench, office automation, token-efficient"
+
+  # Fast execution, long-chain tool use, persistent tasks
+  fast:
+    primary: "openrouter/glm-5-turbo"
+    fallback:
+      - "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
+    description: "Speed-critical, OpenClaw-optimized, stable execution"
+
+  # Audit and review tasks
+  audit:
+    primary: "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
+    fallback:
+      - "openrouter/glm-5-turbo"
+    description: "Code review, quality checks, scope validation"
+
+# Model capabilities
+models:
+  nemotron-3-super:
+    provider: "nvidia"
+    model_id: "nvidia/nemotron-3-super-120b-a12b:free"
+    context_window: 262144
+    free: true
+    strengths:
+      - "Planning and reasoning"
+      - "Multi-agent coherence"
+      - "Long-horizon tasks"
+      - "SWE-Bench performance"
+
+  minimax-m2-5:
+    provider: "minimax"
+    model_id: "minimax/minimax-m2.5:free"
+    context_window: 196608
+    free: true
+    strengths:
+      - "Office automation (Word/Excel/PPT)"
+      - "SWE-Bench (80.2%)"
+      - "Token-efficient"
+      - "Real-world productivity"
+
+  glm-5-turbo:
+    provider: "z-ai"
+    model_id: "glm-5-turbo"
+    context_window: 131072
+    free: false
+    strengths:
+      - "Fast inference"
+      - "Long execution chains"
+      - "OpenClaw stability"
+      - "Tool use"
+
+# OpenRouter configuration
+openrouter:
+  api_key_env: "OPENROUTER_API_KEY"
+  credit_budget: 20.00  # USD
+  default_provider: "nvidia"
+  allow_prompt_training: true  # For free tier optimization
+
+# Credit management
+credit_strategy:
+  default_to_free: true
+  premium_bursts_only: true
+  max_daily_spend: 0.50  # USD
+  alert_threshold: 5.00  # USD remaining
