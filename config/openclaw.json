@@ -1,0 +1,109 @@
+{
+  "version": "1.0",
+  "gateway": {
+    "port": 18789,
+    "bind": "0.0.0.0",
+    "token": "${GATEWAY_TOKEN}"
+  },
+  "models": {
+    "default": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+    "providers": {
+      "openrouter": {
+        "api_key": "${OPENROUTER_API_KEY}",
+        "base_url": "https://openrouter.ai/api/v1"
+      }
+    },
+    "routing": {
+      "planning": {
+        "primary": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+        "fallback": ["openrouter/glm-5-turbo", "openrouter/minimax/minimax-m2.5:free"]
+      },
+      "coding": {
+        "primary": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
+        "fallback": ["openrouter/minimax/minimax-m2.5:free", "openrouter/glm-5-turbo"]
+      },
+      "office": {
+        "primary": "openrouter/minimax/minimax-m2.5:free",
+        "fallback": ["openrouter/nvidia/nemotron-3-super-120b-a12b:free"]
+      },
+      "fast": {
+        "primary": "openrouter/glm-5-turbo",
+        "fallback": ["openrouter/nvidia/nemotron-3-super-120b-a12b:free"]
+      }
+    }
+  },
+  "mcp": {
+    "servers": {
+      "github": {
+        "enabled": true,
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-github"],
+        "env": {
+          "GITHUB_TOKEN": "${GITHUB_TOKEN}"
+        },
+        "tools": [
+          "create_or_update_file",
+          "search_repositories",
+          "create_issue",
+          "create_pull_request",
+          "list_issues",
+          "list_pull_requests",
+          "get_file_contents"
+        ]
+      },
+      "vercel": {
+        "enabled": true,
+        "command": "npx",
+        "args": ["-y", "@vercel/mcp-server"],
+        "env": {
+          "VERCEL_TOKEN": "${VERCEL_TOKEN}"
+        },
+        "tools": [
+          "list_projects",
+          "deploy",
+          "get_deployment"
+        ]
+      },
+      "notion": {
+        "enabled": true,
+        "command": "npx",
+        "args": ["-y", "@notionhq/notion-mcp-server"],
+        "env": {
+          "NOTION_API_KEY": "${NOTION_API_KEY}"
+        },
+        "tools": [
+          "search",
+          "get_page",
+          "create_page",
+          "update_page"
+        ]
+      },
+      "browser": {
+        "enabled": true,
+        "command": "npx",
+        "args": ["-y", "@anthropic/mcp-server-browser"],
+        "tools": [
+          "browser_navigate",
+          "browser_screenshot",
+          "browser_click",
+          "browser_type",
+          "browser_read"
+        ]
+      }
+    }
+  },
+  "telegram": {
+    "enabled": true,
+    "bot_token": "${TELEGRAM_BOT_TOKEN}",
+    "allow_from": ["343865518"]
+  },
+  "agent": {
+    "name": "JARVIS",
+    "identity": "Autonomous SWE Workflow System",
+    "max_steps": 50,
+    "memory": {
+      "enabled": true,
+      "type": "persistent"
+    }
+  }
+}

@@ -1,0 +1,56 @@
+# Notion MCP Server Configuration
+# Purpose: Documentation, knowledge base, master docs
+
+server:
+  name: "notion"
+  enabled: true
+  command: "npx"
+  args:
+    - "-y"
+    - "@notionhq/notion-mcp-server"
+
+environment:
+  NOTION_API_KEY: "${NOTION_API_KEY}"
+
+# Available tools provided by this MCP server
+tools:
+  - name: "search"
+    description: "Search Notion pages and databases"
+    parameters:
+      - query: "Search query"
+      - filter: "Object type filter (page|database)"
+
+  - name: "get_page"
+    description: "Get page content"
+    parameters:
+      - page_id: "Page ID"
+
+  - name: "create_page"
+    description: "Create a new page"
+    parameters:
+      - parent: "Parent page or database ID"
+      - title: "Page title"
+      - content: "Page content blocks"
+
+  - name: "update_page"
+    description: "Update an existing page"
+    parameters:
+      - page_id: "Page ID"
+      - properties: "Page properties to update"
+      - content: "Content blocks to add"
+
+  - name: "list_databases"
+    description: "List accessible databases"
+    parameters: []
+
+# Usage examples for JARVIS agent
+examples:
+  - command: "Jarvis, update the master plan"
+    workflow:
+      - "Search for MASTER-PLAN page"
+      - "Update with new content"
+
+  - command: "Jarvis, create daily standup doc"
+    workflow:
+      - "Create new page under Standups database"
+      - "Add date and template content"

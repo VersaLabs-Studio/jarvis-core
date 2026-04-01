@@ -1,0 +1,58 @@
+# Browser MCP Server Configuration
+# Purpose: Web automation, research, scraping
+
+server:
+  name: "browser"
+  enabled: true
+  command: "npx"
+  args:
+    - "-y"
+    - "@anthropic/mcp-server-browser"
+
+environment: {}
+
+# Available tools provided by this MCP server
+tools:
+  - name: "browser_navigate"
+    description: "Navigate to a URL"
+    parameters:
+      - url: "URL to navigate to"
+
+  - name: "browser_screenshot"
+    description: "Take a screenshot of the current page"
+    parameters:
+      - full_page: "Capture full page (default: false)"
+
+  - name: "browser_click"
+    description: "Click an element on the page"
+    parameters:
+      - selector: "CSS selector for element"
+
+  - name: "browser_type"
+    description: "Type text into an input field"
+    parameters:
+      - selector: "CSS selector for input"
+      - text: "Text to type"
+
+  - name: "browser_read"
+    description: "Read the current page content"
+    parameters: []
+
+  - name: "browser_evaluate"
+    description: "Execute JavaScript on the page"
+    parameters:
+      - script: "JavaScript code to execute"
+
+# Usage examples for JARVIS agent
+examples:
+  - command: "Jarvis, research this topic"
+    workflow:
+      - "Navigate to search engine"
+      - "Search for topic"
+      - "Read and summarize results"
+
+  - command: "Jarvis, check website status"
+    workflow:
+      - "Navigate to URL"
+      - "Take screenshot"
+      - "Report status"

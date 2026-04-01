@@ -1,0 +1,12 @@
+# Vercel MCP Configuration
+
+server:
+  name: vercel
+  type: stdio
+  command: npx
+  args:
+    - "-y"
+    - "@vercel/mcp-server"
+
+env:
+  VERCEL_TOKEN: ${VERCEL_TOKEN}

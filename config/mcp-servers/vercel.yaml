@@ -1,0 +1,51 @@
+# Vercel MCP Server Configuration
+# Purpose: Deployment, project management
+
+server:
+  name: "vercel"
+  enabled: true
+  command: "npx"
+  args:
+    - "-y"
+    - "@vercel/mcp-server"
+
+environment:
+  VERCEL_TOKEN: "${VERCEL_TOKEN}"
+
+# Available tools provided by this MCP server
+tools:
+  - name: "list_projects"
+    description: "List all Vercel projects"
+    parameters: []
+
+  - name: "deploy"
+    description: "Deploy a project to Vercel"
+    parameters:
+      - project: "Project name or ID"
+      - path: "Path to build"
+      - env: "Environment variables"
+
+  - name: "get_deployment"
+    description: "Get deployment status"
+    parameters:
+      - deployment_id: "Deployment ID"
+
+  - name: "list_deployments"
+    description: "List recent deployments"
+    parameters:
+      - project: "Project name"
+      - limit: "Number of results (default: 10)"
+
+# Usage examples for JARVIS agent
+examples:
+  - command: "Jarvis, deploy to production"
+    workflow:
+      - "Build project"
+      - "Call deploy with production settings"
+      - "Monitor deployment status"
+      - "Report success/failure"
+
+  - command: "Jarvis, check deployment status"
+    workflow:
+      - "Call list_deployments"
+      - "Display latest deployment status"

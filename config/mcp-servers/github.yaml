@@ -1,0 +1,85 @@
+# GitHub MCP Server Configuration
+# Purpose: Repository management, PRs, issues, commits
+
+server:
+  name: "github"
+  enabled: true
+  command: "npx"
+  args:
+    - "-y"
+    - "@modelcontextprotocol/server-github"
+
+environment:
+  GITHUB_TOKEN: "${GITHUB_TOKEN}"
+
+# Available tools provided by this MCP server
+tools:
+  - name: "create_or_update_file"
+    description: "Create or update a file in a GitHub repository"
+    parameters:
+      - owner: "Repository owner"
+      - repo: "Repository name"
+      - path: "File path"
+      - content: "File content"
+      - message: "Commit message"
+      - branch: "Branch name"
+
+  - name: "search_repositories"
+    description: "Search for GitHub repositories"
+    parameters:
+      - query: "Search query"
+      - per_page: "Results per page (default: 10)"
+
+  - name: "create_issue"
+    description: "Create a new issue"
+    parameters:
+      - owner: "Repository owner"
+      - repo: "Repository name"
+      - title: "Issue title"
+      - body: "Issue description"
+      - labels: "Array of labels"
+
+  - name: "create_pull_request"
+    description: "Create a new pull request"
+    parameters:
+      - owner: "Repository owner"
+      - repo: "Repository name"
+      - title: "PR title"
+      - body: "PR description"
+      - head: "Source branch"
+      - base: "Target branch"
+
+  - name: "list_issues"
+    description: "List issues in a repository"
+    parameters:
+      - owner: "Repository owner"
+      - repo: "Repository name"
+      - state: "open|closed|all"
+
+  - name: "list_pull_requests"
+    description: "List pull requests"
+    parameters:
+      - owner: "Repository owner"
+      - repo: "Repository name"
+      - state: "open|closed|all"
+
+  - name: "get_file_contents"
+    description: "Get file contents from a repository"
+    parameters:
+      - owner: "Repository owner"
+      - repo: "Repository name"
+      - path: "File path"
+      - ref: "Branch or commit ref"
+
+# Usage examples for JARVIS agent
+examples:
+  - command: "Jarvis, create a PR for feature-x"
+    workflow:
+      - "Check current branch"
+      - "Create PR from feature-x to main"
+      - "Add description from commit messages"
+
+  - command: "Jarvis, list open issues"
+    workflow:
+      - "Call list_issues for current repo"
+      - "Format and display results"

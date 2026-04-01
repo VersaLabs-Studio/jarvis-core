@@ -1,0 +1,60 @@
+# Gmail/Google MCP Server Configuration
+# Purpose: Email, calendar, drive integration
+
+server:
+  name: "gmail"
+  enabled: false  # Pending setup
+  command: "npx"
+  args:
+    - "-y"
+    - "@modelcontextprotocol/server-gmail"
+
+environment:
+  GOOGLE_CLIENT_ID: "${GOOGLE_CLIENT_ID}"
+  GOOGLE_CLIENT_SECRET: "${GOOGLE_CLIENT_SECRET}"
+  GOOGLE_REFRESH_TOKEN: "${GOOGLE_REFRESH_TOKEN}"
+
+# Available tools provided by this MCP server
+tools:
+  - name: "search_emails"
+    description: "Search Gmail messages"
+    parameters:
+      - query: "Search query"
+      - max_results: "Max results (default: 10)"
+
+  - name: "read_email"
+    description: "Read a specific email"
+    parameters:
+      - message_id: "Email message ID"
+
+  - name: "send_email"
+    description: "Send an email"
+    parameters:
+      - to: "Recipient email"
+      - subject: "Email subject"
+      - body: "Email body"
+
+  - name: "list_labels"
+    description: "List Gmail labels"
+    parameters: []
+
+# Setup instructions
+setup:
+  - "Create Google Cloud Project"
+  - "Enable Gmail API"
+  - "Create OAuth 2.0 credentials"
+  - "Get refresh token via OAuth flow"
+  - "Add credentials to .env file"
+
+# Usage examples for JARVIS agent
+examples:
+  - command: "Jarvis, check my emails"
+    workflow:
+      - "Call search_emails for recent messages"
+      - "Display summary"
+
+  - command: "Jarvis, send email to client"
+    workflow:
+      - "Draft email content"
+      - "Call send_email"
+      - "Confirm sent"
