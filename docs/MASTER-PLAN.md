@@ -1,6 +1,6 @@
 # JARVIS v1.0 — Master Plan (Source of Truth)
 
-**Author:** Kidus Abdula | **Version:** 1.0 | **Last Updated:** 2026-03-31
+**Author:** Kidus Abdula | **Version:** 1.1 | **Last Updated:** 2026-04-01
 
 ---
 
@@ -65,24 +65,27 @@ Nemotron-3-Super:free → GLM-5-Turbo → MiniMax-M2.5:free → Step-3.5-free �
 | **Telegram** | ✅ Active | Primary chat interface (@Jarvis1015Bot) |
 | **WhatsApp** | 🔄 Pending | Client communication |
 | **Web Dashboard** | ✅ Active | Control panel (port 18789) |
-| **Gmail** | 🔄 Pending | Email automation |
-| **Notion** | 🔄 Pending | Documentation, knowledge base |
-| **GitHub** | 🔄 Pending | Code management, CI/CD |
-| **Vercel** | 🔄 Pending | Deployment |
+| **Gmail** | 🔄 Pending | Email automation (OAuth setup required) |
+| **Notion** | ✅ Configured | Documentation, knowledge base |
+| **GitHub** | ✅ Configured | Code management, CI/CD |
+| **Vercel** | ✅ Configured | Deployment |
 | **VS Code** | 🔄 Pending | Workspace integration |
 
 ---
 
 ## 4. MCP Integrations (Individual — Full Control)
 
-### Priority Order
-1. **GitHub MCP** — Repository management, PRs, issues, commits
-2. **Vercel MCP** — Deployment, project management
-3. **Notion MCP** — Documentation, master docs, knowledge base
-4. **Gmail/Google MCP** — Email, calendar, drive
-5. **VS Code MCP** — Workspace integration, linter, terminal
-6. **Browser MCP** — Web automation, research
-7. **Shell/File MCP** — System operations
+### MCP Server Status
+
+| Server | Status | Config | Purpose |
+|--------|--------|--------|---------|
+| **GitHub MCP** | ✅ Configured | `config/mcp-servers/github.yaml` | Repository management, PRs, issues, commits |
+| **Vercel MCP** | ✅ Configured | `config/mcp-servers/vercel.yaml` | Deployment, project management |
+| **Notion MCP** | ✅ Configured | `config/mcp-servers/notion.yaml` | Documentation, master docs, knowledge base |
+| **Browser MCP** | ✅ Configured | `config/mcp-servers/browser.yaml` | Web automation, research |
+| **Gmail MCP** | 🔄 Pending OAuth | `config/mcp-servers/gmail.yaml` | Email, calendar, drive |
+| **VS Code MCP** | 🔄 Pending | TBD | Workspace integration, linter, terminal |
+| **Shell/File MCP** | 🔄 Pending | TBD | System operations |
 
 ### MCP Philosophy
 - Individual MCPs over Composio (pure flexibility, zero vendor lock)
@@ -103,13 +106,16 @@ Nemotron-3-Super:free → GLM-5-Turbo → MiniMax-M2.5:free → Step-3.5-free �
 - [x] Nemotron-3-Super active
 - [x] Identity setup (USER.md + IDENTITY.md)
 
-### Phase 2: Monorepo + MCPs 🔄 IN PROGRESS
-- [ ] jarvis-core monorepo setup (local + VPS)
-- [ ] GitHub MCP integration
-- [ ] Vercel MCP integration
-- [ ] Notion MCP integration
-- [ ] Gmail/Google MCP integration
-- [ ] VS Code workspace MCP
+### Phase 2: Monorepo + MCPs ✅ CONFIGURATIONS COMPLETE
+- [x] jarvis-core monorepo setup (local + VPS)
+- [x] OpenClaw gateway configuration (`config/openclaw.json`)
+- [x] GitHub MCP configuration
+- [x] Vercel MCP configuration
+- [x] Notion MCP configuration
+- [x] Browser MCP configuration
+- [x] Gmail MCP configuration (pending OAuth)
+- [x] Docker Compose updated with MCP services
+- [ ] Deploy to VPS and test MCP connections
 - [ ] Test unified chat interface
 
 ### Phase 3: Daily Workflow Automation
@@ -216,6 +222,7 @@ docker compose down && docker compose up -d
 | Docker over native install | Portable, reproducible, easy rollback | 2026-03-23 |
 | Monorepo (jarvis-core) | Single source of truth, version-controlled | 2026-03-23 |
 | Telegram as primary interface | Mobile-first, bot-friendly, free | 2026-03-23 |
+| YAML configs for MCPs | Human-readable, easy to modify | 2026-04-01 |
 
 ---
 
@@ -224,14 +231,27 @@ docker compose down && docker compose up -d
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | 2026-03-31 | Initial master plan, Phase 1 complete |
-| 1.1 | TBD | Phase 2 complete (MCPs integrated) |
+| 1.1 | 2026-04-01 | Phase 2 MCP configurations complete, OpenClaw config created, Docker Compose updated |
+| 1.2 | TBD | Phase 2 complete (MCPs deployed and tested) |
 | 2.0 | TBD | Full autonomous SWE loop |
+
+---
+
+## 11. Worklog Summary
+
+### 2026-04-01 Session
+- **18:33** - Project status assessment, identified Phase 2 gap
+- **19:28** - Created ONBOARDING.md, WORKLOG.md, MCP-SETUP.md
+- **20:35** - Created `config/openclaw.json` gateway configuration
+- **20:38** - Created all MCP server configs in `config/mcp-servers/`
+- **20:39** - Created MCP server README files in `mcp/*/`
+- **20:40** - Updated `docker-compose.yml` with MCP services
 
 ---
 
 ## 📌 Critical Notes
 
-1. **Never use paid hosted providers** (Cursor, Claude Pro, etc.) — OpenRouter free models only
+1. **Never use paid hosted providers** — OpenRouter free models only
 2. **All changes go through Git** — Nothing is modified directly on VPS without commit
 3. **Test before commit** — Always verify changes work before pushing
 4. **Security first** — Keep tokens in .env, never in code

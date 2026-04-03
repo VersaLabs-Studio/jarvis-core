@@ -1,6 +1,6 @@
 # JARVIS Architecture Document
 
-**Version:** 1.0 | **Last Updated:** 2026-03-31
+**Version:** 1.1 | **Last Updated:** 2026-04-01
 
 ---
 
@@ -23,6 +23,7 @@ JARVIS is a self-hosted autonomous SWE workflow system built on a microservices 
 │                    ┌─────▼─────┐                               │
 │                    │  OpenClaw  │                               │
 │                    │  Gateway   │                               │
+│                    │ :18789     │                               │
 │                    └─────┬─────┘                               │
 │                          │                                     │
 │         ┌────────────────┼────────────────┐                    │
@@ -62,7 +63,9 @@ The central orchestrator that manages:
 - **Tool Execution** — Calls MCP servers for integrations
 - **State Management** — Maintains conversation context
 
-**Port:** 18789 (HTTP) / 18790 (WebSocket)
+**Port:** 18789 (HTTP) / 18790 (WebSocket) / 18791 (Browser control)
+
+**Configuration:** `config/openclaw.json`
 
 ### 2. Model Router
 
@@ -91,13 +94,13 @@ routing:
 
 Individual Model Context Protocol servers for each integration:
 
-| Server | Port | Protocol | Purpose |
-|--------|------|----------|---------|
-| GitHub MCP | 9234 | HTTP | Repository management |
-| Vercel MCP | 9235 | HTTP | Deployment |
-| Notion MCP | 9236 | HTTP | Documentation |
-| Gmail MCP | 9237 | HTTP | Email |
-| VS Code MCP | 9238 | HTTP | Workspace |
+| Server | Container | npm Package | Purpose | Status |
+|--------|-----------|-------------|---------|--------|
+| GitHub MCP | `jarvis-mcp-github` | `@modelcontextprotocol/server-github` | Repository management | ✅ Configured |
+| Vercel MCP | `jarvis-mcp-vercel` | `@vercel/mcp-server` | Deployment | ✅ Configured |
+| Notion MCP | `jarvis-mcp-notion` | `@notionhq/notion-mcp-server` | Documentation | ✅ Configured |
+| Browser MCP | `jarvis-mcp-browser` | `@anthropic/mcp-server-browser` | Web automation | ✅ Configured |
+| Gmail MCP | `jarvis-mcp-gmail` | `@modelcontextprotocol/server-gmail` | Email | 🔄 Pending OAuth |
 
 ### 4. Docker Architecture
 
@@ -108,26 +111,28 @@ services:
     ports:
       - "18789:18789"
       - "18790:18790"
+      - "18791:18791"
     volumes:
       - ./config:/home/node/.openclaw
       - openclaw-data:/data
-    environment:
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
-    restart: unless-stopped
+    networks:
+      - jarvis-network
 
   mcp-github:
-    image: node:20
-    command: npx @modelcontextprotocol/server-github
+    image: node:20-slim
+    command: npx -y @modelcontextprotocol/server-github
     environment:
       - GITHUB_TOKEN=${GITHUB_TOKEN}
-    restart: unless-stopped
+    networks:
+      - jarvis-network
 
   mcp-notion:
-    image: node:20
-    command: npx @notionhq/notion-mcp-server
+    image: node:20-slim
+    command: npx -y @notionhq/notion-mcp-server
     environment:
       - NOTION_API_KEY=${NOTION_API_KEY}
-    restart: unless-stopped
+    networks:
+      - jarvis-network
 ```
 
 ---
@@ -178,6 +183,52 @@ Send completion notification
 
 ---
 
+## MCP Integration Architecture
+
+### Network Topology
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Docker Network: jarvis-network            │
+│                                                             │
+│  ┌──────────────────┐                                       │
+│  │  jarvis-gateway  │  ← OpenClaw (ports 18789, 18790)     │
+│  │  172.x.x.2       │                                       │
+│  └────────┬─────────┘                                       │
+│           │                                                 │
+│  ┌────────┼─────────┬──────────┬──────────┐                │
+│  │        │         │          │          │                 │
+│  ▼        ▼         ▼          ▼          ▼                 │
+│ ┌───┐  ┌───┐  ┌───┐  ┌───┐  ┌───┐                          │
+│ │GH │  │VC │  │NT │  │BR │  │GM │                          │
+│ │MCP│  │MCP│  │MCP│  │MCP│  │MCP│                          │
+│ └───┘  └───┘  └───┘  └───┘  └───┘                          │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### MCP Discovery
+
+OpenClaw discovers MCP servers through:
+1. **Configuration file** (`config/openclaw.json`) - defines MCP commands and env
+2. **Docker network** - all MCPs on `jarvis-network` for internal communication
+3. **npx execution** - MCPs run as child processes of OpenClaw
+
+### MCP Communication Protocol
+
+```
+OpenClaw                    MCP Server
+   │                            │
+   │─── stdio: initialize ─────>│
+   │<── capabilities response ──│
+   │                            │
+   │─── tool call request ─────>│
+   │<── tool result ────────────│
+   │                            │
+```
+
+---
+
 ## Security Architecture
 
 ### Authentication
@@ -195,6 +246,21 @@ Send completion notification
 - Sensitive data in `.env` (gitignored)
 - Docker volumes for persistent data
 - VPS snapshots for backup
+
+---
+
+## Configuration Files
+
+| File | Purpose |
+|------|---------|
+| `config/openclaw.json` | Main OpenClaw gateway configuration |
+| `config/models.yaml` | Model routing and fallback configuration |
+| `config/mcp-servers/github.yaml` | GitHub MCP server configuration |
+| `config/mcp-servers/vercel.yaml` | Vercel MCP server configuration |
+| `config/mcp-servers/notion.yaml` | Notion MCP server configuration |
+| `config/mcp-servers/gmail.yaml` | Gmail MCP server configuration |
+| `config/mcp-servers/browser.yaml` | Browser MCP server configuration |
+| `.env` | Environment variables (tokens, keys) |
 
 ---
 

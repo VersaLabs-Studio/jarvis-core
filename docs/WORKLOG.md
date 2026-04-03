@@ -70,7 +70,7 @@ User lost track of project progress after creating initial documentation. Needed
 **What was done:**
 - Created ONBOARDING.md with full project context for future agents
 - Created WORKLOG.md template for chronological tracking
-- Created MCP-SETUP.md (in progress) for MCP server documentation
+- Created MCP-SETUP.md for MCP server documentation
 - Updated todo list with detailed Phase 2 tasks
 
 **Why:**
@@ -79,33 +79,174 @@ User requested detailed documentation for future agent access and process tracki
 **Files created:**
 - docs/ONBOARDING.md
 - docs/WORKLOG.md
+- docs/MCP-SETUP.md
 
 **Notes for next agent:**
-- MCP-SETUP.md still needs to be created
-- MASTER-PLAN.md and ARCHITECTURE.md need updates with current status
+- All foundational documentation is in place
+- Ready to create actual configuration files
+
+---
+
+### [2026-04-01 20:35] - OpenClaw Gateway Configuration Created
+**Agent:** Roo (Code Mode)
+**Type:** Config
+**Status:** Done
+
+**What was done:**
+- Created `config/openclaw.json` with complete gateway configuration
+- Defined model routing with fallback chains
+- Configured MCP server definitions (GitHub, Vercel, Notion, Browser)
+- Added Telegram integration settings
+- Configured agent settings (name, identity, max steps, memory)
+
+**Why:**
+OpenClaw needs a configuration file to know how to connect to models and MCP servers. This is the central config that ties everything together.
+
+**Files created:**
+- config/openclaw.json
+
+**Notes for next agent:**
+- Config uses environment variable substitution (${VAR_NAME})
+- MCP servers are defined with command, args, and env
+- Test config on VPS before deploying to production
+
+---
+
+### [2026-04-01 20:38] - MCP Server Configurations Created
+**Agent:** Roo (Code Mode)
+**Type:** Config
+**Status:** Done
+
+**What was done:**
+- Created `config/mcp-servers/` directory
+- Created individual MCP configuration files:
+  - `github.yaml` - GitHub MCP with full tool definitions
+  - `vercel.yaml` - Vercel MCP with deployment tools
+  - `notion.yaml` - Notion MCP with page management tools
+  - `gmail.yaml` - Gmail MCP (pending OAuth setup)
+  - `browser.yaml` - Browser MCP with web automation tools
+
+**Why:**
+Each MCP server needs its own configuration file for easy management and documentation. This allows for granular control over each integration.
+
+**Files created:**
+- config/mcp-servers/github.yaml
+- config/mcp-servers/vercel.yaml
+- config/mcp-servers/notion.yaml
+- config/mcp-servers/gmail.yaml
+- config/mcp-servers/browser.yaml
+
+**Notes for next agent:**
+- Gmail MCP is disabled by default (requires OAuth setup)
+- Each config includes tool definitions and usage examples
+- All configs use environment variable substitution
+
+---
+
+### [2026-04-01 20:39] - MCP Server Documentation Created
+**Agent:** Roo (Code Mode)
+**Type:** Docs
+**Status:** Done
+
+**What was done:**
+- Created README.md and config.yaml for each MCP server:
+  - `mcp/github/README.md` + `mcp/github/config.yaml`
+  - `mcp/vercel/README.md` + `mcp/vercel/config.yaml`
+  - `mcp/notion/README.md` + `mcp/notion/config.yaml`
+  - `mcp/gmail/README.md` + `mcp/gmail/config.yaml`
+
+**Why:**
+Each MCP server directory needs documentation for setup instructions and a local config file for reference.
+
+**Files created:**
+- mcp/github/README.md
+- mcp/github/config.yaml
+- mcp/vercel/README.md
+- mcp/vercel/config.yaml
+- mcp/notion/README.md
+- mcp/notion/config.yaml
+- mcp/gmail/README.md
+- mcp/gmail/config.yaml
+
+**Notes for next agent:**
+- README files include setup instructions and testing commands
+- config.yaml files are local copies of server configuration
+
+---
+
+### [2026-04-01 20:40] - Docker Compose Updated with MCP Services
+**Agent:** Roo (Code Mode)
+**Type:** Config
+**Status:** Done
+
+**What was done:**
+- Updated `docker-compose.yml` with complete MCP service definitions
+- Added health checks for all services
+- Configured proper network settings (jarvis-network)
+- Added service profiles for selective startup
+- Added dependency management (gateway depends on MCPs)
+
+**Why:**
+Docker Compose needs proper service definitions to run MCP servers alongside OpenClaw gateway.
+
+**Files modified:**
+- docker-compose.yml
+
+**Notes for next agent:**
+- Use `docker compose --profile mcp up -d` to start MCP services
+- Use `docker compose --profile all up -d` to start everything
+- Gmail MCP is in separate profile (mcp-gmail) due to OAuth requirement
+
+---
+
+### [2026-04-01 20:41] - Documentation Updated
+**Agent:** Roo (Code Mode)
+**Type:** Docs
+**Status:** Done
+
+**What was done:**
+- Updated MASTER-PLAN.md with Phase 2 status and worklog summary
+- Updated ARCHITECTURE.md with MCP integration details and network topology
+- Updated version history to 1.1
+
+**Why:**
+Documentation needs to reflect current state for future agent access.
+
+**Files modified:**
+- docs/MASTER-PLAN.md
+- docs/ARCHITECTURE.md
+
+**Notes for next agent:**
+- All documentation is now current as of 2026-04-01
+- Phase 2 configurations are complete
+- Next step: Deploy to VPS and test MCP connections
 
 ---
 
 ## Pending Work Items
 
-### Next: Create OpenClaw Gateway Configuration
-**Priority:** High
-**Estimated effort:** 1-2 hours
-**Dependencies:** None
-**Description:** Create `config/openclaw.json` with proper MCP server definitions
-
-### Next: Create MCP Server Configurations
+### Next: Deploy to VPS and Test MCP Connections
 **Priority:** High
 **Estimated effort:** 2-3 hours
-**Dependencies:** OpenClaw config format verified
-**Description:** Create individual MCP config files in `config/mcp-servers/`
+**Dependencies:** All configs created
+**Description:**
+1. Copy config files to VPS
+2. Set up .env with actual tokens
+3. Start services with docker-compose
+4. Test each MCP connection
+5. Verify OpenClaw can use MCP tools
 
-### Next: Update Docker Compose
+### Next: Phase 3 - Daily Workflow Automation
 **Priority:** Medium
-**Estimated effort:** 1 hour
-**Dependencies:** MCP configs created
-**Description:** Update docker-compose.yml with proper MCP service definitions
+**Estimated effort:** 1-2 days
+**Dependencies:** Phase 2 complete
+**Description:**
+- Morning audit workflow
+- Plan → Code → Git → Vercel → Notion pipeline
+- Automated daily standup
+- Cron-based task scheduling
 
 ---
 
 *This worklog is the chronological record. Update it after every significant action.*
+*Last updated: 2026-04-01 20:41*

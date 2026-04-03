@@ -1,10 +1,11 @@
 # JARVIS Core - Docker Compose Configuration
 # Main compose file for all JARVIS services
-
-version: '3.8'
+# Version: 2.0 - Updated with MCP server support
 
 services:
+  # ===========================================
   # OpenClaw Gateway - Central orchestrator
+  # ===========================================
   openclaw-gateway:
     image: openclaw:local
     container_name: jarvis-gateway
@@ -13,10 +14,13 @@ services:
       - "18790:18790"  # Internal
       - "18791:18791"  # Browser control
     volumes:
-      - openclaw-config:/home/node/.openclaw
+      - ./config:/home/node/.openclaw
       - openclaw-data:/data
     environment:
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - GATEWAY_TOKEN=${GATEWAY_TOKEN}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_ALLOW_FROM=${TELEGRAM_ALLOW_FROM}
       - NODE_ENV=production
     restart: unless-stopped
     healthcheck:
@@ -27,8 +31,19 @@ services:
       start_period: 60s
     networks:
       - jarvis-network
+    depends_on:
+      - mcp-github
+      - mcp-notion
+      - mcp-vercel
+    profiles:
+      - default
+      - all
 
-  # GitHub MCP Server
+  # ===========================================
+  # MCP Servers - Individual Integrations
+  # ===========================================
+
+  # GitHub MCP - Repository management, PRs, issues
   mcp-github:
     image: node:20-slim
     container_name: jarvis-mcp-github
@@ -38,23 +53,16 @@ services:
     restart: unless-stopped
     networks:
       - jarvis-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('healthy')"]
+      interval: 60s
+      timeout: 5s
+      retries: 2
     profiles:
       - mcp
+      - all
 
-  # Notion MCP Server
-  mcp-notion:
-    image: node:20-slim
-    container_name: jarvis-mcp-notion
-    command: npx -y @notionhq/notion-mcp-server
-    environment:
-      - NOTION_API_KEY=${NOTION_API_KEY}
-    restart: unless-stopped
-    networks:
-      - jarvis-network
-    profiles:
-      - mcp
-
-  # Vercel MCP Server
+  # Vercel MCP - Deployment, project management
   mcp-vercel:
     image: node:20-slim
     container_name: jarvis-mcp-vercel
@@ -64,10 +72,35 @@ services:
     restart: unless-stopped
     networks:
       - jarvis-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('healthy')"]
+      interval: 60s
+      timeout: 5s
+      retries: 2
     profiles:
       - mcp
+      - all
 
-  # Browser MCP Server
+  # Notion MCP - Documentation, knowledge base
+  mcp-notion:
+    image: node:20-slim
+    container_name: jarvis-mcp-notion
+    command: npx -y @notionhq/notion-mcp-server
+    environment:
+      - NOTION_API_KEY=${NOTION_API_KEY}
+    restart: unless-stopped
+    networks:
+      - jarvis-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('healthy')"]
+      interval: 60s
+      timeout: 5s
+      retries: 2
+    profiles:
+      - mcp
+      - all
+
+  # Browser MCP - Web automation, research
   mcp-browser:
     image: node:20-slim
     container_name: jarvis-mcp-browser
@@ -77,13 +110,37 @@ services:
       - jarvis-network
     profiles:
       - mcp
+      - all
 
+  # Gmail MCP - Email, calendar (disabled by default)
+  mcp-gmail:
+    image: node:20-slim
+    container_name: jarvis-mcp-gmail
+    command: npx -y @modelcontextprotocol/server-gmail
+    environment:
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REFRESH_TOKEN=${GOOGLE_REFRESH_TOKEN}
+    restart: unless-stopped
+    networks:
+      - jarvis-network
+    profiles:
+      - mcp-gmail
+      - all
+    # Note: Requires OAuth setup - see mcp/gmail/README.md
+
+# ===========================================
+# Volumes
+# ===========================================
 volumes:
   openclaw-config:
     name: jarvis-openclaw-config
   openclaw-data:
     name: jarvis-openclaw-data
 
+# ===========================================
+# Networks
+# ===========================================
 networks:
   jarvis-network:
     name: jarvis-network
