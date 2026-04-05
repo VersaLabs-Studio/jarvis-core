@@ -2,8 +2,10 @@
   "version": "1.0",
   "gateway": {
     "port": 18789,
-    "bind": "0.0.0.0",
-    "token": "${GATEWAY_TOKEN}"
+    "auth": {
+      "token": "${GATEWAY_TOKEN}"
+    },
+    "bind": "lan"
   },
   "models": {
     "default": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
@@ -40,16 +42,7 @@
         "args": ["-y", "@modelcontextprotocol/server-github"],
         "env": {
           "GITHUB_TOKEN": "${GITHUB_TOKEN}"
-        },
-        "tools": [
-          "create_or_update_file",
-          "search_repositories",
-          "create_issue",
-          "create_pull_request",
-          "list_issues",
-          "list_pull_requests",
-          "get_file_contents"
-        ]
+        }
       },
       "vercel": {
         "enabled": true,
@@ -57,12 +50,7 @@
         "args": ["-y", "@vercel/mcp-server"],
         "env": {
           "VERCEL_TOKEN": "${VERCEL_TOKEN}"
-        },
-        "tools": [
-          "list_projects",
-          "deploy",
-          "get_deployment"
-        ]
+        }
       },
       "notion": {
         "enabled": true,
@@ -70,40 +58,35 @@
         "args": ["-y", "@notionhq/notion-mcp-server"],
         "env": {
           "NOTION_API_KEY": "${NOTION_API_KEY}"
-        },
-        "tools": [
-          "search",
-          "get_page",
-          "create_page",
-          "update_page"
-        ]
+        }
       },
       "browser": {
         "enabled": true,
         "command": "npx",
-        "args": ["-y", "@anthropic/mcp-server-browser"],
-        "tools": [
-          "browser_navigate",
-          "browser_screenshot",
-          "browser_click",
-          "browser_type",
-          "browser_read"
-        ]
+        "args": ["-y", "@anthropic/mcp-server-browser"]
       }
     }
   },
-  "telegram": {
-    "enabled": true,
-    "bot_token": "${TELEGRAM_BOT_TOKEN}",
-    "allow_from": ["343865518"]
-  },
-  "agent": {
-    "name": "JARVIS",
-    "identity": "Autonomous SWE Workflow System",
-    "max_steps": 50,
-    "memory": {
+  "channels": {
+    "telegram": {
       "enabled": true,
-      "type": "persistent"
+      "bot_token": "${TELEGRAM_BOT_TOKEN}",
+      "allow_from": ["343865518"]
     }
+  },
+  "agents": {
+    "defaults": {
+      "name": "JARVIS",
+      "identity": "Autonomous SWE Workflow System",
+      "max_steps": 50,
+      "memory": {
+        "enabled": true,
+        "type": "persistent"
+      }
+    }
+  },
+  "tools": {
+    "elevated": ["exec", "cron"],
+    "allow": ["*"]
   }
 }
