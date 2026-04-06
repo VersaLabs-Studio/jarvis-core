@@ -1,43 +1,19 @@
 {
-  "version": "1.0",
   "gateway": {
-    "port": 18789,
-    "auth": {
-      "token": "${GATEWAY_TOKEN}"
-    },
-    "bind": "lan"
+    "port": 18789
   },
   "models": {
-    "default": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
     "providers": {
       "openrouter": {
-        "api_key": "${OPENROUTER_API_KEY}",
-        "base_url": "https://openrouter.ai/api/v1"
-      }
-    },
-    "routing": {
-      "planning": {
-        "primary": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
-        "fallback": ["openrouter/glm-5-turbo", "openrouter/minimax/minimax-m2.5:free"]
-      },
-      "coding": {
-        "primary": "openrouter/nvidia/nemotron-3-super-120b-a12b:free",
-        "fallback": ["openrouter/minimax/minimax-m2.5:free", "openrouter/glm-5-turbo"]
-      },
-      "office": {
-        "primary": "openrouter/minimax/minimax-m2.5:free",
-        "fallback": ["openrouter/nvidia/nemotron-3-super-120b-a12b:free"]
-      },
-      "fast": {
-        "primary": "openrouter/glm-5-turbo",
-        "fallback": ["openrouter/nvidia/nemotron-3-super-120b-a12b:free"]
+        "apiKey": "${OPENROUTER_API_KEY}",
+        "baseUrl": "https://openrouter.ai/api/v1",
+        "models": [{"id": "*"}]
       }
     }
   },
   "mcp": {
     "servers": {
       "github": {
-        "enabled": true,
         "command": "npx",
         "args": ["-y", "@modelcontextprotocol/server-github"],
         "env": {
@@ -45,7 +21,6 @@
         }
       },
       "vercel": {
-        "enabled": true,
         "command": "npx",
         "args": ["-y", "@vercel/mcp-server"],
         "env": {
@@ -53,7 +28,6 @@
         }
       },
       "notion": {
-        "enabled": true,
         "command": "npx",
         "args": ["-y", "@notionhq/notion-mcp-server"],
         "env": {
@@ -61,7 +35,6 @@
         }
       },
       "browser": {
-        "enabled": true,
         "command": "npx",
         "args": ["-y", "@anthropic/mcp-server-browser"]
       }
@@ -69,24 +42,8 @@
   },
   "channels": {
     "telegram": {
-      "enabled": true,
-      "bot_token": "${TELEGRAM_BOT_TOKEN}",
-      "allow_from": ["343865518"]
+      "botToken": "${TELEGRAM_BOT_TOKEN}",
+      "allowFrom": ["343865518"]
     }
-  },
-  "agents": {
-    "defaults": {
-      "name": "JARVIS",
-      "identity": "Autonomous SWE Workflow System",
-      "max_steps": 50,
-      "memory": {
-        "enabled": true,
-        "type": "persistent"
-      }
-    }
-  },
-  "tools": {
-    "elevated": ["exec", "cron"],
-    "allow": ["*"]
   }
 }
