@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workflows - JARVIS Dashboard</title>
+  
+  <!-- Outfit Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Outfit', 'sans-serif'],
+            mono: ['Fira Code', 'monospace'],
+          },
+          colors: {
+            surface: '#161618',
+            'surface-2': '#1C1C1F',
+            border: 'rgba(255, 255, 255, 0.08)',
+          }
+        }
+      }
+    }
+  </script>
+  
+  <link rel="stylesheet" href="css/custom.css">
+  <link rel="icon" href="img/favicon.ico">
+</head>
+<body class="bg-[#000000] text-white font-sans min-h-screen">
+  <!-- Mobile Menu Toggle -->
+  <button class="mobile-menu-toggle" data-sidebar-toggle aria-label="Toggle menu" aria-expanded="false">
+    <svg class="w-5 h-5 icon-menu" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+    <svg class="w-5 h-5 icon-close" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+  </button>
+  <!-- Sidebar Overlay -->
+  <div class="sidebar-overlay" aria-hidden="true"></div>
+  
+  <div class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-[#0D0D0F] border-r border-white/10 flex flex-col">
+        <div class="p-6 border-b border-white/10">
+          <div class="flex items-center space-x-3">
+            <img src="img/logo.svg" alt="JARVIS" class="w-10 h-10 rounded-xl">
+            <div>
+              <h1 class="text-lg font-bold tracking-tight">JARVIS</h1>
+              <p class="text-[13px] text-zinc-500">Core v1.1</p>
+            </div>
+          </div>
+        </div>
+      
+      <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
+        <a href="index.html" class="flex items-center space-x-3 px-4 py-3 text-zinc-400 rounded-xl transition-all duration-200 hover:bg-white/5 hover:text-white">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+          <span class="font-medium text-[13px]">Dashboard</span>
+        </a>
+        <a href="services.html" class="flex items-center space-x-3 px-4 py-3 text-zinc-400 rounded-xl transition-all duration-200 hover:bg-white/5 hover:text-white">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path></svg>
+          <span class="font-medium text-[13px]">Services</span>
+        </a>
+        <a href="models.html" class="flex items-center space-x-3 px-4 py-3 text-zinc-400 rounded-xl transition-all duration-200 hover:bg-white/5 hover:text-white">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+          <span class="font-medium text-[13px]">Models</span>
+        </a>
+        <a href="integrations.html" class="flex items-center space-x-3 px-4 py-3 text-zinc-400 rounded-xl transition-all duration-200 hover:bg-white/5 hover:text-white">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001 1v1a2 2 0 004 0z"></path></svg>
+          <span class="font-medium text-[13px]">Integrations</span>
+        </a>
+        <a href="workflows.html" class="flex items-center space-x-3 px-4 py-3 text-white bg-white/10 rounded-xl transition-all duration-200 hover:bg-white/5">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <span class="font-medium text-[13px]">Workflows</span>
+        </a>
+        <a href="chat.html" class="flex items-center space-x-3 px-4 py-3 text-zinc-400 rounded-xl transition-all duration-200 hover:bg-white/5 hover:text-white">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+          <span class="font-medium text-[13px]">Chat</span>
+        </a>
+        <a href="logs.html" class="flex items-center space-x-3 px-4 py-3 text-zinc-400 rounded-xl transition-all duration-200 hover:bg-white/5 hover:text-white">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+          <span class="font-medium text-[13px]">Logs</span>
+        </a>
+        <a href="config.html" class="flex items-center space-x-3 px-4 py-3 text-zinc-400 rounded-xl transition-all duration-200 hover:bg-white/5 hover:text-white">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+          <span class="font-medium text-[13px]">Config</span>
+        </a>
+        <a href="analytics.html" class="flex items-center space-x-3 px-4 py-3 text-zinc-400 rounded-xl transition-all duration-200 hover:bg-white/5 hover:text-white">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+          <span class="font-medium text-[13px]">Analytics</span>
+        </a>
+      </nav>
+      
+      <div class="p-4 border-t border-white/10">
+        <a href="admin.html" class="flex items-center space-x-3 px-4 py-3 text-zinc-400 rounded-xl transition-all duration-200 hover:bg-white/5 hover:text-white">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+          <span class="font-medium text-[13px]">Admin</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-y-auto bg-[#000000]">
+      <!-- Header -->
+      <header class="site-header sticky top-0 z-10 bg-[#0D0D0F]/80 backdrop-blur-md border-b border-white/10 px-4 md:px-6 lg:px-8 py-4">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 class="text-xl lg:text-2xl font-bold tracking-tight">Workflows</h2>
+            <p class="text-[13px] text-zinc-500 mt-1">Manage automated tasks and cron jobs</p>
+          </div>
+          <div class="flex items-center space-x-4">
+            <button onclick="JARVIS.mockAction('Create Workflow')" class="px-4 py-2 text-[13px] font-medium text-black bg-white rounded-xl hover:bg-white/90 transition-all duration-200">
+              + New Workflow
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Workflows Content -->
+      <div class="p-4 md:p-6 lg:p-8">
+        <!-- Active Workflows -->
+        <div class="bento-grid mb-8">
+          <!-- Morning Audit Card -->
+          <div class="glass rounded-2xl p-4 md:p-6 glass-hover col-span-hero-md animate-spring workflow-card">
+            <div class="flex items-start justify-between mb-6">
+              <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+                  <span class="text-2xl">🌅</span>
+                </div>
+                <div>
+                  <h3 class="text-xl font-bold tracking-tight">Morning Audit</h3>
+                  <p class="text-[13px] text-zinc-500">Daily system health check and task summary</p>
+                </div>
+              </div>
+              <div class="flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-400/10 border border-emerald-400/20">
+                <div class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(74,222,128,0.4)]"></div>
+                <span class="text-[12px] text-emerald-400">Enabled</span>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div class="p-4 bg-white/5 rounded-xl border border-white/10">
+                <div class="text-[13px] text-zinc-500 mb-1">Schedule</div>
+                <div class="text-[13px] text-white font-medium">0 8 * * *</div>
+                <div class="text-[12px] text-zinc-500 mt-1">Daily at 08:00</div>
+              </div>
+              <div class="p-4 bg-white/5 rounded-xl border border-white/10">
+                <div class="text-[13px] text-zinc-500 mb-1">Last Run</div>
+                <div class="text-[13px] text-white font-medium">2026-04-23 08:00</div>
+                <div class="text-[12px] text-emerald-400 mt-1">✓ Successful</div>
+              </div>
+              <div class="p-4 bg-white/5 rounded-xl border border-white/10">
+                <div class="text-[13px] text-zinc-500 mb-1">Next Run</div>
+                <div class="text-[13px] text-white font-medium">2026-04-24 08:00</div>
+                <div class="text-[12px] text-zinc-500 mt-1">in 10h 17m</div>
+              </div>
+            </div>
+
+            <div class="p-4 bg-white/5 rounded-xl border border-white/10 mb-4">
+              <div class="text-[13px] font-medium text-white mb-2">Last Output</div>
+              <div class="text-[13px] text-zinc-400 font-mono">
+                ✓ All systems operational. 3 PRs pending review, 5 tasks due this week. Daily plan sent to Telegram.
+              </div>
+            </div>
+
+            <div class="flex space-x-3">
+              <button onclick="JARVIS.mockAction('Run Now', 'Morning Audit')" class="px-4 py-2 text-[13px] font-medium text-black bg-white rounded-xl hover:bg-white/90 transition-all duration-200">
+                Run Now
+              </button>
+              <button onclick="JARVIS.mockAction('View Logs', 'Morning Audit')" class="px-4 py-2 text-[13px] font-medium text-white bg-white/5 rounded-xl hover:bg-white/10 transition-all duration-200">
+                View Logs
+              </button>
+              <button onclick="JARVIS.mockAction('Disable', 'Morning Audit')" class="px-4 py-2 text-[13px] font-medium text-white bg-white/5 rounded-xl hover:bg-white/10 transition-all duration-200">
+                Disable
+              </button>
+            </div>
+          </div>
+
+          <!-- Deploy Pipeline Card -->
+          <div class="glass rounded-2xl p-4 md:p-6 glass-hover animate-spring workflow-card">
+            <div class="flex items-start justify-between mb-4">
+              <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+                  <span class="text-lg">🚀</span>
+                </div>
+                <div>
+                  <h3 class="font-bold text-white">Deploy Pipeline</h3>
+                  <p class="text-[13px] text-zinc-500">Manual trigger</p>
+                </div>
+              </div>
+              <div class="flex items-center space-x-2 px-3 py-1 rounded-full bg-zinc-500/10 border border-zinc-500/20">
+                <div class="w-2 h-2 rounded-full bg-zinc-500"></div>
+                <span class="text-[12px] text-zinc-500">Manual</span>
+              </div>
+            </div>
+
+            <div class="space-y-2 mb-4 text-[13px] text-zinc-400">
+              <div class="flex items-center space-x-2">
+                <span class="text-emerald-400">✓</span>
+                <span>Plan → Code</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <span class="text-emerald-400">✓</span>
+                <span>Commit → Push</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <span class="text-emerald-400">✓</span>
+                <span>Deploy to Vercel</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <span class="text-emerald-400">✓</span>
+                <span>Update Notion docs</span>
+              </div>
+            </div>
+
+            <div class="p-3 bg-white/5 rounded-xl border border-white/10 mb-4">
+              <div class="text-[12px] text-zinc-500">Last run: 2026-04-22 14:30</div>
+              <div class="text-[12px] text-emerald-400">✓ Successfully deployed</div>
+            </div>
+
+            <button onclick="JARVIS.mockAction('Trigger Deploy')" class="w-full px-4 py-2 text-[13px] font-medium text-black bg-white rounded-xl hover:bg-white/90 transition-all duration-200">
+              Trigger Deploy
+            </button>
+          </div>
+        </div>
+
+        <!-- Cron Jobs Table -->
+        <div class="glass rounded-2xl p-4 md:p-6 glass-hover animate-spring">
+          <h3 class="text-base lg:text-lg font-bold tracking-tight mb-4">Scheduled Cron Jobs</h3>
+          <div class="table-responsive overflow-x-auto">
+            <table class="w-full">
+              <thead>
+                <tr class="border-b border-white/10">
+                  <th class="text-left text-[13px] font-medium text-zinc-500 pb-3">Schedule</th>
+                  <th class="text-left text-[13px] font-medium text-zinc-500 pb-3">Command</th>
+                  <th class="text-left text-[13px] font-medium text-zinc-500 pb-3">Last Run</th>
+                  <th class="text-left text-[13px] font-medium text-zinc-500 pb-3">Next Run</th>
+                  <th class="text-left text-[13px] font-medium text-zinc-500 pb-3">Status</th>
+                  <th class="text-right text-[13px] font-medium text-zinc-500 pb-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="border-b border-white/5">
+                  <td class="py-3 text-[13px] text-zinc-300 font-mono">0 8 * * *</td>
+                  <td class="py-3 text-[13px] text-zinc-400">/workflows/morning-audit.sh</td>
+                  <td class="py-3 text-[13px] text-zinc-400">2026-04-23 08:00</td>
+                  <td class="py-3 text-[13px] text-zinc-400">2026-04-24 08:00</td>
+                  <td class="py-3"><span class="px-2 py-1 text-[12px] rounded" style="background: rgba(74, 222, 128, 0.2); color: rgba(74, 222, 128, 0.9);">Enabled</span></td>
+                  <td class="py-3 text-right">
+                    <button onclick="JARVIS.mockAction('Edit Cron', 1)" class="text-[13px] text-zinc-400 hover:text-white transition-colors">Edit</button>
+                  </td>
+                </tr>
+                <tr class="border-b border-white/5">
+                  <td class="py-3 text-[13px] text-zinc-300 font-mono">0 * * * *</td>
+                  <td class="py-3 text-[13px] text-zinc-400">docker ps | grep jarvis</td>
+                  <td class="py-3 text-[13px] text-zinc-400">2026-04-23 21:00</td>
+                  <td class="py-3 text-[13px] text-zinc-400">2026-04-23 22:00</td>
+                  <td class="py-3"><span class="px-2 py-1 text-[12px] rounded" style="background: rgba(74, 222, 128, 0.2); color: rgba(74, 222, 128, 0.9);">Enabled</span></td>
+                  <td class="py-3 text-right">
+                    <button onclick="JARVIS.mockAction('Edit Cron', 2)" class="text-[13px] text-zinc-400 hover:text-white transition-colors">Edit</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="py-3 text-[13px] text-zinc-300 font-mono">0 2 * * *</td>
+                  <td class="py-3 text-[13px] text-zinc-400">git -C /home/node backup</td>
+                  <td class="py-3 text-[13px] text-zinc-400">2026-04-23 02:00</td>
+                  <td class="py-3 text-[13px] text-zinc-400">2026-04-24 02:00</td>
+                  <td class="py-3"><span class="px-2 py-1 text-[12px] rounded" style="background: rgba(74, 222, 128, 0.2); color: rgba(74, 222, 128, 0.9);">Enabled</span></td>
+                  <td class="py-3 text-right">
+                    <button onclick="JARVIS.mockAction('Edit Cron', 3)" class="text-[13px] text-zinc-400 hover:text-white transition-colors">Edit</button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/mock-data.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

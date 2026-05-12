@@ -7,7 +7,7 @@
       "openrouter": {
         "apiKey": "${OPENROUTER_API_KEY}",
         "baseUrl": "https://openrouter.ai/api/v1",
-        "models": [{"id": "*"}]
+        "models": [{"name": "nemotron-3-super"}]
       }
     }
   },
