@@ -1,0 +1,149 @@
+# JARVIS Core - Development Docker Compose (Optional)
+# Self-hosted Supabase for local development ONLY
+# NOT used in production — Supabase is hosted
+# Usage: docker compose -f docker-compose.dev.yml up -d
+
+services:
+  supabase-db:
+    image: supabase/postgres:15.1.0
+    container_name: jarvis-dev-supabase-db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-dev_password_change_me}
+      - POSTGRES_DB=postgres
+      - JWT_SECRET=${JWT_SECRET:-dev_jwt_secret_change_me}
+    volumes:
+      - supabase-dev-data:/var/lib/postgresql/data
+      - ./supabase/migrations:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: 256m
+
+  supabase-kong:
+    image: kong:2.8.1
+    container_name: jarvis-dev-supabase-kong
+    ports:
+      - "8000:8000"
+      - "8443:8443"
+    environment:
+      - KONG_DATABASE=off
+      - KONG_DECLARATIVE_CONFIG=/var/lib/kong/kong.yml
+      - KONG_DNS_ORDER=LAST,A,CNAME
+      - KONG_PLUGINS=request-transformer,cors,key-auth,acl
+    volumes:
+      - ./supabase/kong.yml:/var/lib/kong/kong.yml
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: 128m
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+
+  supabase-auth:
+    image: supabase/gotrue:v2.99.0
+    container_name: jarvis-dev-supabase-auth
+    environment:
+      - GOTRUE_DB_DRIVER=postgres
+      - GOTRUE_DB_DATABASE_URL=postgres://postgres:${POSTGRES_PASSWORD:-dev_password_change_me}@supabase-db:5432/postgres
+      - GOTRUE_SITE_URL=${SITE_URL:-http://localhost:3000}
+      - GOTRUE_JWT_SECRET=${JWT_SECRET:-dev_jwt_secret_change_me}
+      - GOTRUE_JWT_EXP=3600
+      - GOTRUE_EXTERNAL_EMAIL_ENABLED=true
+      - GOTRUE_MAILER_AUTOCONFIRM=true
+      - API_HOST=0.0.0.0
+      - PORT=9999
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9999/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: 128m
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+
+  supabase-rest:
+    image: postgrest/postgrest:v12.0.2
+    container_name: jarvis-dev-supabase-rest
+    environment:
+      - PGRST_DB_URI=postgres://postgres:${POSTGRES_PASSWORD:-dev_password_change_me}@supabase-db:5432/postgres
+      - PGRST_DB_SCHEMAS=public,storage,graphql_public
+      - PGRST_DB_ANON_ROLE=anon
+      - PGRST_JWT_SECRET=${JWT_SECRET:-dev_jwt_secret_change_me}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: 128m
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+
+  supabase-storage:
+    image: supabase/storage-api:v0.46.4
+    container_name: jarvis-dev-supabase-storage
+    environment:
+      - ANON_KEY=${SUPABASE_ANON_KEY:-dev_anon_key}
+      - SERVICE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-dev_service_key}
+      - POSTGREST_URL=http://supabase-rest:3000
+      - PGRST_JWT_SECRET=${JWT_SECRET:-dev_jwt_secret_change_me}
+      - DATABASE_URL=postgres://postgres:${POSTGRES_PASSWORD:-dev_password_change_me}@supabase-db:5432/postgres
+      - STORAGE_BACKEND=file
+      - FILE_STORAGE_BACKEND_PATH=/var/lib/storage
+      - TENANT_ID=stub
+      - REGION=stub
+    volumes:
+      - supabase-dev-storage:/var/lib/storage
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: 128m
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+      supabase-rest:
+        condition: service_healthy
+
+  supabase-realtime:
+    image: supabase/realtime:v2.25.35
+    container_name: jarvis-dev-supabase-realtime
+    environment:
+      - DB_HOST=supabase-db
+      - DB_PORT=5432
+      - DB_NAME=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-dev_password_change_me}
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE:-dev_secret_key_base_at_least_32_chars}
+      - ERL_AFLAGS=-proto_dist inet_tcp
+      - ENABLE_POSTGRES_CDC=true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: 128m
+    depends_on:
+      supabase-db:
+        condition: service_healthy
+
+volumes:
+  supabase-dev-data:
+    name: jarvis-dev-supabase-data
+  supabase-dev-storage:
+    name: jarvis-dev-supabase-storage
