@@ -58,6 +58,8 @@ build/
 *.tar.gz
 .next/
 .turbo/
+next-env.d.ts
+tsconfig.tsbuildinfo
 
 # ===========================================
 # COVERAGE & TESTING
