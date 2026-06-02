@@ -1,147 +1,199 @@
-# JARVIS Core - Docker Compose Configuration
-# Main compose file for all JARVIS services
-# Version: 2.0 - Updated with MCP server support
+# JARVIS Core - Production Docker Compose
+# Supabase is HOSTED — no Supabase containers here
+# Part 1 §1.4 topology: hermes, api, web, redis, nginx, docker-socket-proxy, MCP profiles
 
 services:
-  # ===========================================
-  # OpenClaw Gateway - Central orchestrator
-  # ===========================================
-  openclaw-gateway:
-    image: openclaw:local
-    container_name: jarvis-gateway
-    ports:
-      - "18789:18789"  # HTTP/WebSocket
-      - "18790:18790"  # Internal
-      - "18791:18791"  # Browser control
-    volumes:
-      - ./config:/home/node/.openclaw
-      - openclaw-data:/data
+  # Docker Socket Proxy — least privilege (H1 fix)
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    container_name: jarvis-socket-proxy
     environment:
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
-      - GATEWAY_TOKEN=${GATEWAY_TOKEN}
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - TELEGRAM_ALLOW_FROM=${TELEGRAM_ALLOW_FROM}
-      - NODE_ENV=production
+      - CONTAINERS=1
+      - POST=1
+      - INFO=1
+      - EXEC=0
+      - IMAGES=0
+      - VOLUMES=0
+      - NETWORKS=0
+      - BUILD=0
+      - TASKS=0
+      - SERVICES=0
+    read_only: true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:18789/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:2375/_ping"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 10s
+    mem_limit: 64m
     networks:
-      - jarvis-network
+      - jarvis-internal
+
+  # Redis — cache + queue backend
+  redis:
+    image: redis:7-alpine
+    container_name: jarvis-redis
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    mem_limit: 128m
+    networks:
+      - jarvis-internal
+
+  # Hermes — workflow engine
+  hermes:
+    build:
+      context: .
+      dockerfile: apps/hermes/Dockerfile
+    container_name: jarvis-hermes
+    environment:
+      - NODE_ENV=production
+      - REDIS_URL=redis://redis:6379
+      - DOCKER_HOST=tcp://docker-socket-proxy:2375
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+    volumes:
+      - hermes-data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8765/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    mem_limit: 512m
     depends_on:
-      - mcp-github
-      - mcp-notion
-      - mcp-vercel
-    profiles:
-      - default
-      - all
+      redis:
+        condition: service_healthy
+      docker-socket-proxy:
+        condition: service_healthy
+    networks:
+      - jarvis-internal
 
-  # ===========================================
-  # MCP Servers - Individual Integrations
-  # ===========================================
+  # API — Fastify server
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: jarvis-api
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=production
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - REDIS_URL=redis://redis:6379
+      - DOCKER_HOST=tcp://docker-socket-proxy:2375
+      - PORT=3000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    mem_limit: 512m
+    depends_on:
+      redis:
+        condition: service_healthy
+      docker-socket-proxy:
+        condition: service_healthy
+    networks:
+      - jarvis-internal
 
-  # GitHub MCP - Repository management, PRs, issues
+  # Web — Next.js application
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: jarvis-web
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+    mem_limit: 512m
+    networks:
+      - jarvis-internal
+
+  # Nginx — reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: jarvis-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    mem_limit: 128m
+    depends_on:
+      api:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    networks:
+      - jarvis-internal
+
+  # MCP Servers (behind profiles — opt-in)
   mcp-github:
-    image: node:20-slim
+    profiles: ["mcp"]
+    build:
+      context: .
+      dockerfile: apps/mcp-github/Dockerfile
     container_name: jarvis-mcp-github
-    command: npx -y @modelcontextprotocol/server-github
     environment:
       - GITHUB_TOKEN=${GITHUB_TOKEN}
     restart: unless-stopped
+    mem_limit: 128m
     networks:
-      - jarvis-network
-    healthcheck:
-      test: ["CMD", "node", "-e", "console.log('healthy')"]
-      interval: 60s
-      timeout: 5s
-      retries: 2
-    profiles:
-      - mcp
-      - all
+      - jarvis-internal
 
-  # Vercel MCP - Deployment, project management
   mcp-vercel:
-    image: node:20-slim
+    profiles: ["mcp"]
+    build:
+      context: .
+      dockerfile: apps/mcp-vercel/Dockerfile
     container_name: jarvis-mcp-vercel
-    command: npx -y @vercel/mcp-server
     environment:
       - VERCEL_TOKEN=${VERCEL_TOKEN}
     restart: unless-stopped
+    mem_limit: 128m
     networks:
-      - jarvis-network
-    healthcheck:
-      test: ["CMD", "node", "-e", "console.log('healthy')"]
-      interval: 60s
-      timeout: 5s
-      retries: 2
-    profiles:
-      - mcp
-      - all
+      - jarvis-internal
 
-  # Notion MCP - Documentation, knowledge base
-  mcp-notion:
-    image: node:20-slim
-    container_name: jarvis-mcp-notion
-    command: npx -y @notionhq/notion-mcp-server
-    environment:
-      - NOTION_API_KEY=${NOTION_API_KEY}
-    restart: unless-stopped
-    networks:
-      - jarvis-network
-    healthcheck:
-      test: ["CMD", "node", "-e", "console.log('healthy')"]
-      interval: 60s
-      timeout: 5s
-      retries: 2
-    profiles:
-      - mcp
-      - all
-
-  # Browser MCP - Web automation, research
-  mcp-browser:
-    image: node:20-slim
-    container_name: jarvis-mcp-browser
-    command: npx -y @anthropic/mcp-server-browser
-    restart: unless-stopped
-    networks:
-      - jarvis-network
-    profiles:
-      - mcp
-      - all
-
-  # Gmail MCP - Email, calendar (disabled by default)
-  mcp-gmail:
-    image: node:20-slim
-    container_name: jarvis-mcp-gmail
-    command: npx -y @modelcontextprotocol/server-gmail
-    environment:
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - GOOGLE_REFRESH_TOKEN=${GOOGLE_REFRESH_TOKEN}
-    restart: unless-stopped
-    networks:
-      - jarvis-network
-    profiles:
-      - mcp-gmail
-      - all
-    # Note: Requires OAuth setup - see mcp/gmail/README.md
-
-# ===========================================
-# Volumes
-# ===========================================
 volumes:
-  openclaw-config:
-    name: jarvis-openclaw-config
-  openclaw-data:
-    name: jarvis-openclaw-data
+  hermes-data:
+    name: jarvis-hermes-data
 
-# ===========================================
-# Networks
-# ===========================================
 networks:
-  jarvis-network:
-    name: jarvis-network
+  jarvis-internal:
+    name: jarvis-internal
     driver: bridge

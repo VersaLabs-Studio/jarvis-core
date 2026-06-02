@@ -1,0 +1,32 @@
+{
+  "name": "jarvis-core",
+  "private": true,
+  "version": "1.5.0",
+  "description": "JARVIS v1.5 — AI-powered platform monorepo",
+  "packageManager": "pnpm@9.15.4",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "clean": "turbo clean",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "type-drift:check": "tsx scripts/type-drift-check.ts",
+    "color-gate": "tsx scripts/color-gate.ts",
+    "any-gate": "tsx scripts/any-gate.ts",
+    "factory-check": "tsx scripts/factory-check.ts",
+    "import-check": "tsx scripts/import-check.ts",
+    "audit": "tsx scripts/type-drift-check.ts && tsx scripts/color-gate.ts && tsx scripts/any-gate.ts && tsx scripts/factory-check.ts && tsx scripts/import-check.ts"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0",
+    "prettier": "^3.4.0",
+    "typescript": "^5.7.0",
+    "tsx": "^4.19.0"
+  }
+}
