@@ -1,4 +1,5 @@
 export type { Database, Json } from './database.types'
+export * from './api'
 export type { Tenant, TenantRow, TenantInsert, TenantUpdate, TenantPlan } from './tenant'
 export type { Profile, ProfileRow, ProfileInsert, ProfileUpdate, ProfileRole } from './profile'
 export type { Workflow, WorkflowRow, WorkflowInsert, WorkflowUpdate, WorkflowStatus } from './workflow'
