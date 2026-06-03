@@ -196,8 +196,8 @@ BEGIN
     RETURN v_profile;
   END IF;
 
-  -- Create tenant
-  INSERT INTO public.tenants (name) VALUES (p_email) RETURNING id INTO v_tenant_id;
+  -- Create tenant (slug is required UNIQUE NOT NULL — use gen_random_uuid)
+  INSERT INTO public.tenants (name, slug) VALUES (p_email, gen_random_uuid()::text) RETURNING id INTO v_tenant_id;
 
   -- Create profile
   INSERT INTO public.profiles (id, tenant_id, email, full_name)
