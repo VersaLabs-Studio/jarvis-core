@@ -54,6 +54,28 @@ export const ENTITY_CONFIG = {
     publicPath: "/api/public/secrets",
     protectedPath: "/api/cms/secrets",
   },
+  chat_session: {
+    table: "chat_sessions",
+    label: "Chat Session",
+    labelPlural: "Chat Sessions",
+    searchFields: ["title"],
+    labelField: "title",
+    sortField: "created_at",
+    sortOrder: "desc" as const,
+    publicPath: "/api/public/chat-sessions",
+    protectedPath: "/api/cms/chat-sessions",
+  },
+  workflow_run: {
+    table: "workflow_runs",
+    label: "Workflow Run",
+    labelPlural: "Workflow Runs",
+    searchFields: [],
+    labelField: "id",
+    sortField: "started_at",
+    sortOrder: "desc" as const,
+    publicPath: "/api/public/workflow-runs",
+    protectedPath: "/api/cms/workflow-runs",
+  },
 } as const;
 
 export type EntityKey = keyof typeof ENTITY_CONFIG;

@@ -1,6 +1,6 @@
--- 0003_custom_access_token_hook.sql
+-- 0002_custom_access_token_hook.sql
 -- Supabase Custom Access Token Hook
--- Adds tenant_id to JWT app_metadata on token mint.
+-- Adds tenant_id to JWT claims on token mint.
 -- This ensures every JWT carries the tenant_id claim needed for RLS.
 
 CREATE OR REPLACE FUNCTION public.custom_access_token(event jsonb)
@@ -20,11 +20,11 @@ BEGIN
   -- Get existing claims
   claims := event->'claims';
 
-  -- Add tenant_id to app_metadata
+  -- Add tenant_id to claims (root level for RLS current_tenant_id())
   IF user_tenant_id IS NOT NULL THEN
     claims := jsonb_set(
       claims,
-      '{app_metadata,tenant_id}',
+      '{tenant_id}',
       to_jsonb(user_tenant_id::text)
     );
   END IF;

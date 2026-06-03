@@ -14,6 +14,11 @@ export type { Integration, IntegrationRow, IntegrationInsert, IntegrationUpdate,
 export type { Skill, SkillRow, SkillInsert, SkillUpdate, SkillStatus } from './types/skill'
 export type { Service, ServiceRow, ServiceInsert, ServiceUpdate, ServiceStatus } from './types/service'
 export type { Secret, SecretRow, SecretInsert, SecretUpdate, SecretType } from './types/secret'
+export type { ChatSession, ChatSessionRow, ChatSessionInsert, ChatSessionUpdate } from './types/chat-session'
+export type { ChatMessage, ChatMessageRow, ChatMessageInsert, ChatMessageUpdate, ChatMessageRole } from './types/chat-message'
+export type { WorkflowRun, WorkflowRunRow, WorkflowRunInsert, WorkflowRunUpdate, WorkflowRunStatus } from './types/workflow-run'
+export type { AnalyticsEvent, AnalyticsEventRow, AnalyticsEventInsert, AnalyticsEventUpdate } from './types/analytics-event'
+export type { SystemLog, SystemLogRow, SystemLogInsert, SystemLogUpdate, SystemLogLevel } from './types/system-log'
 
 // Zod schemas
 export {
@@ -83,6 +88,46 @@ export {
   type SecretInsert as SecretInsertData,
   type SecretUpdate as SecretUpdateData,
 } from './schemas/secret.schema'
+
+export {
+  chatSessionSelectSchema,
+  chatSessionInsertSchema,
+  chatSessionUpdateSchema,
+  type ChatSessionSelect,
+  type ChatSessionInsert as ChatSessionInsertData,
+  type ChatSessionUpdate as ChatSessionUpdateData,
+} from './schemas/chat-session.schema'
+
+export {
+  chatMessageSelectSchema,
+  chatMessageInsertSchema,
+  chatMessageRoleEnum,
+  type ChatMessageSelect,
+  type ChatMessageInsert as ChatMessageInsertData,
+} from './schemas/chat-message.schema'
+
+export {
+  workflowRunSelectSchema,
+  workflowRunInsertSchema,
+  workflowRunStatusEnum,
+  type WorkflowRunSelect,
+  type WorkflowRunInsert as WorkflowRunInsertData,
+} from './schemas/workflow-run.schema'
+
+export {
+  analyticsEventSelectSchema,
+  analyticsEventInsertSchema,
+  type AnalyticsEventSelect,
+  type AnalyticsEventInsert as AnalyticsEventInsertData,
+} from './schemas/analytics-event.schema'
+
+export {
+  systemLogSelectSchema,
+  systemLogInsertSchema,
+  systemLogLevelEnum,
+  type SystemLogSelect,
+  type SystemLogInsert as SystemLogInsertData,
+} from './schemas/system-log.schema'
 
 // Entity config
 export { ENTITY_CONFIG, type EntityKey } from './config/entities'

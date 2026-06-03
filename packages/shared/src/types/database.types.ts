@@ -1,6 +1,6 @@
 // =============================================================================
 // AUTO-GENERATED TYPES — Do not edit manually
-// Generated from: supabase/migrations/0001_init.sql
+// Generated from: supabase/migrations/0001_init.sql + 0003_schema_completion.sql
 // Run: supabase gen types typescript --project-id <id> to regenerate
 // =============================================================================
 
@@ -417,12 +417,239 @@ export type Database = {
           },
         ]
       }
+      chat_sessions: {
+        Row: {
+          id: string
+          tenant_id: string
+          title: string
+          context: Json | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          title?: string
+          context?: Json | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          title?: string
+          context?: Json | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'chat_sessions_tenant_id_fkey'
+            columns: ['tenant_id']
+            isOneToOne: false
+            referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      chat_messages: {
+        Row: {
+          id: string
+          session_id: string
+          tenant_id: string
+          role: 'user' | 'assistant' | 'system' | 'tool'
+          content: string | null
+          model: string | null
+          tools_used: string[]
+          tokens_in: number | null
+          tokens_out: number | null
+          duration_ms: number | null
+          metadata: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          session_id: string
+          tenant_id: string
+          role: 'user' | 'assistant' | 'system' | 'tool'
+          content?: string | null
+          model?: string | null
+          tools_used?: string[]
+          tokens_in?: number | null
+          tokens_out?: number | null
+          duration_ms?: number | null
+          metadata?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          session_id?: string
+          tenant_id?: string
+          role?: 'user' | 'assistant' | 'system' | 'tool'
+          content?: string | null
+          model?: string | null
+          tools_used?: string[]
+          tokens_in?: number | null
+          tokens_out?: number | null
+          duration_ms?: number | null
+          metadata?: Json | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'chat_messages_session_id_fkey'
+            columns: ['session_id']
+            isOneToOne: false
+            referencedRelation: 'chat_sessions'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'chat_messages_tenant_id_fkey'
+            columns: ['tenant_id']
+            isOneToOne: false
+            referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      workflow_runs: {
+        Row: {
+          id: string
+          workflow_id: string
+          tenant_id: string
+          status: 'pending' | 'running' | 'success' | 'failed' | 'cancelled'
+          output: string | null
+          error: string | null
+          started_at: string | null
+          finished_at: string | null
+          duration_ms: number | null
+        }
+        Insert: {
+          id?: string
+          workflow_id: string
+          tenant_id: string
+          status?: 'pending' | 'running' | 'success' | 'failed' | 'cancelled'
+          output?: string | null
+          error?: string | null
+          started_at?: string | null
+          finished_at?: string | null
+          duration_ms?: number | null
+        }
+        Update: {
+          id?: string
+          workflow_id?: string
+          tenant_id?: string
+          status?: 'pending' | 'running' | 'success' | 'failed' | 'cancelled'
+          output?: string | null
+          error?: string | null
+          started_at?: string | null
+          finished_at?: string | null
+          duration_ms?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'workflow_runs_workflow_id_fkey'
+            columns: ['workflow_id']
+            isOneToOne: false
+            referencedRelation: 'workflows'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'workflow_runs_tenant_id_fkey'
+            columns: ['tenant_id']
+            isOneToOne: false
+            referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      analytics_events: {
+        Row: {
+          id: string
+          tenant_id: string
+          event_type: string
+          metadata: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          event_type: string
+          metadata?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          event_type?: string
+          metadata?: Json | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'analytics_events_tenant_id_fkey'
+            columns: ['tenant_id']
+            isOneToOne: false
+            referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      system_logs: {
+        Row: {
+          id: string
+          tenant_id: string | null
+          level: 'info' | 'warn' | 'error' | 'debug'
+          service: string
+          message: string
+          metadata: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id?: string | null
+          level: 'info' | 'warn' | 'error' | 'debug'
+          service: string
+          message: string
+          metadata?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string | null
+          level?: 'info' | 'warn' | 'error' | 'debug'
+          service?: string
+          message?: string
+          metadata?: Json | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'system_logs_tenant_id_fkey'
+            columns: ['tenant_id']
+            isOneToOne: false
+            referencedRelation: 'tenants'
+            referencedColumns: ['id']
+          },
+        ]
+      }
     }
     Views: Record<string, never>
     Functions: {
       current_tenant_id: {
         Args: Record<string, never>
         Returns: string
+      }
+      bootstrap_user: {
+        Args: {
+          p_user_id: string
+          p_email: string
+          p_full_name?: string
+        }
+        Returns: Json
       }
     }
     Enums: {
