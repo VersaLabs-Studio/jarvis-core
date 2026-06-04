@@ -1,15 +1,13 @@
 import type { FastifyInstance } from "fastify";
 import { paginated, fail } from "../../lib/response.js";
+import { parsePagination } from "../../lib/pagination.js";
 import "../../types/fastify";
 
 export async function chatMessagesRoute(fastify: FastifyInstance): Promise<void> {
   fastify.get('/api/chat/sessions/:sessionId/messages', async (request, reply) => {
     const { sessionId } = request.params as { sessionId: string };
     const tenantId = request.tenantId;
-    const query = (request.query ?? {}) as Record<string, unknown>;
-    const page = Math.max(1, Number(query.page) || 1);
-    const pageSize = Math.min(100, Math.max(1, Number(query.pageSize) || 50));
-    const offset = (page - 1) * pageSize;
+    const { page, pageSize, offset } = parsePagination(request.query);
 
     // Verify session belongs to tenant
     const { data: session, error: sessionError } = await request.supabase

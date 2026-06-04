@@ -1,15 +1,19 @@
 import type { FastifyInstance } from "fastify";
+import { z } from "zod";
 import { ok, paginated, fail } from "../../lib/response.js";
+import { parsePagination } from "../../lib/pagination.js";
 import "../../types/fastify";
+
+const createSessionSchema = z.object({
+  title: z.string().max(255).optional(),
+  context: z.record(z.unknown()).optional(),
+});
 
 export async function chatSessionsRoute(fastify: FastifyInstance): Promise<void> {
   // List sessions
   fastify.get('/api/chat/sessions', async (request, reply) => {
     const tenantId = request.tenantId;
-    const query = (request.query ?? {}) as Record<string, unknown>;
-    const page = Math.max(1, Number(query.page) || 1);
-    const pageSize = Math.min(100, Math.max(1, Number(query.pageSize) || 20));
-    const offset = (page - 1) * pageSize;
+    const { page, pageSize, offset } = parsePagination(request.query);
 
     const { count, error: countError } = await request.supabase
       .from('chat_sessions')
@@ -41,7 +45,11 @@ export async function chatSessionsRoute(fastify: FastifyInstance): Promise<void>
   // Create session
   fastify.post('/api/chat/sessions', async (request, reply) => {
     const tenantId = request.tenantId;
-    const { title, context } = request.body as { title?: string; context?: unknown };
+    const parsed = createSessionSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return fail(reply, 422, "VALIDATION", "Invalid request body", parsed.error.flatten());
+    }
+    const { title, context } = parsed.data;
 
     const { data, error } = await request.supabase
       .from('chat_sessions')

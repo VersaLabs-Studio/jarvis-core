@@ -1,22 +1,25 @@
 import type { FastifyInstance } from "fastify";
+import { z } from "zod";
 import { getHermesClient } from "../../lib/hermes.js";
 import { fail } from "../../lib/response.js";
 import "../../types/fastify";
+
+const sendMessageSchema = z.object({
+  sessionId: z.string().uuid(),
+  message: z.string().min(1).max(100000),
+  model: z.string().optional(),
+  tools: z.array(z.string()).optional(),
+});
 
 export async function chatSendRoute(fastify: FastifyInstance): Promise<void> {
   fastify.post('/api/chat/send', async (request, reply) => {
     const tenantId = request.tenantId;
     const userId = request.userId;
-    const { sessionId, message, model, tools } = request.body as {
-      sessionId: string;
-      message: string;
-      model?: string;
-      tools?: string[];
-    };
-
-    if (!sessionId || !message) {
-      return fail(reply, 422, "VALIDATION", "sessionId and message are required");
+    const parsed = sendMessageSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return fail(reply, 422, "VALIDATION", "Invalid request body", parsed.error.flatten());
     }
+    const { sessionId, message, model, tools } = parsed.data;
 
     // Verify session belongs to tenant
     const { data: session, error: sessionError } = await request.supabase
