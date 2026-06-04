@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { validateEncryptionKey } from "./crypto.js";
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
@@ -33,6 +34,8 @@ export function validateEnv(): Env {
   }
 
   _env = result.data;
+
+  validateEncryptionKey();
 
   console.log("✅ Environment validated:", {
     NODE_ENV: _env.NODE_ENV,
