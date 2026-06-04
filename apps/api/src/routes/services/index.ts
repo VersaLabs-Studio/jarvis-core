@@ -48,7 +48,8 @@ export async function servicesRoutes(fastify: FastifyInstance): Promise<void> {
     const containerName = `jarvis-${service.id}`;
 
     try {
-      const dockerHost = process.env.DOCKER_HOST || "tcp://docker-socket-proxy:2375";
+      const dockerHost = (process.env.DOCKER_HOST || "tcp://docker-socket-proxy:2375")
+        .replace(/^tcp:\/\//, "http://");
       const response = await fetch(`${dockerHost}/containers/${containerName}/restart`, {
         method: "POST",
         signal: AbortSignal.timeout(30_000),
