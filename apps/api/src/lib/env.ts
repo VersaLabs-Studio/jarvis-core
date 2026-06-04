@@ -1,19 +1,32 @@
 import { z } from "zod";
 
-const envSchema = z.object({
-  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
-  PORT: z.coerce.number().default(3001),
-  HOST: z.string().default("0.0.0.0"),
-  SUPABASE_URL: z.string().url(),
-  SUPABASE_ANON_KEY: z.string().min(1),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-  JWT_SECRET: z.string().min(32),
-  MASTER_ENCRYPTION_KEY: z.string().base64().min(1),
-  REDIS_URL: z.string().url().optional(),
-  DOCKER_HOST: z.string().optional(),
-  HERMES_URL: z.string().url().default("http://hermes:8765"),
-  CORS_ORIGINS: z.string().optional(),
-});
+const envSchema = z
+  .object({
+    NODE_ENV: z
+      .enum(["development", "production", "test"])
+      .default("development"),
+    PORT: z.coerce.number().default(3001),
+    HOST: z.string().default("0.0.0.0"),
+    SUPABASE_URL: z.string().url(),
+    SUPABASE_ANON_KEY: z.string().min(1),
+    SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+    JWT_SECRET: z.string().optional(),
+    SUPABASE_JWKS_URL: z.string().url(),
+    MASTER_ENCRYPTION_KEY: z.string().base64().min(1),
+    REDIS_URL: z.string().url().optional(),
+    DOCKER_HOST: z.string().optional(),
+    HERMES_URL: z.string().url().default("http://hermes:8765"),
+    CORS_ORIGINS: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.NODE_ENV === "production") {
+        return data.SUPABASE_JWKS_URL;
+      }
+      return true;
+    },
+    { message: "SUPABASE_JWKS_URL required in production" }
+  );
 
 export type Env = z.infer<typeof envSchema>;
 
@@ -38,8 +51,10 @@ export function validateEnv(): Env {
     HOST: _env.HOST,
     SUPABASE_URL: _env.SUPABASE_URL,
     SUPABASE_ANON_KEY: _env.SUPABASE_ANON_KEY.slice(0, 8) + "...",
-    SUPABASE_SERVICE_ROLE_KEY: _env.SUPABASE_SERVICE_ROLE_KEY.slice(0, 8) + "...",
-    JWT_SECRET: "***",
+    SUPABASE_SERVICE_ROLE_KEY:
+      _env.SUPABASE_SERVICE_ROLE_KEY.slice(0, 8) + "...",
+    JWT_SECRET: _env.JWT_SECRET ? "***" : "not set",
+    SUPABASE_JWKS_URL: _env.SUPABASE_JWKS_URL,
     MASTER_ENCRYPTION_KEY: "***",
     REDIS_URL: _env.REDIS_URL,
     DOCKER_HOST: _env.DOCKER_HOST,

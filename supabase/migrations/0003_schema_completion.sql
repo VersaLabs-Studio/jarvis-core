@@ -209,8 +209,9 @@ BEGIN
 END;
 $$;
 
--- Grant execute to authenticated users
-GRANT EXECUTE ON FUNCTION public.bootstrap_user(UUID, TEXT, TEXT) TO authenticated;
-
--- Revoke from public
+-- Revoke from public and anon
 REVOKE EXECUTE ON FUNCTION public.bootstrap_user(UUID, TEXT, TEXT) FROM public, anon;
+
+-- W2-SEC-1: Revoke direct access to bootstrap_user from authenticated users
+-- Only service-role (used by the API server) can call this function
+REVOKE EXECUTE ON FUNCTION public.bootstrap_user(UUID, TEXT, TEXT) FROM authenticated;
