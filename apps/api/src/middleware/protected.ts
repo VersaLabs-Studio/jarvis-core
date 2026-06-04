@@ -1,13 +1,7 @@
-import type { FastifyRequest, FastifyReply } from "fastify";
-import { authMiddleware } from "./auth.js";
+import type { FastifyInstance } from "fastify";
 import { tenantMiddleware } from "./tenant.js";
 
-export async function protectedMiddleware(
-  request: FastifyRequest,
-  reply: FastifyReply
-): Promise<void> {
-  await authMiddleware(request, reply);
-  if (reply.sent) return;
-
-  await tenantMiddleware(request, reply);
+export async function protectedPlugin(fastify: FastifyInstance): Promise<void> {
+  // All routes under this plugin require auth + tenant context
+  fastify.addHook("preHandler", tenantMiddleware);
 }

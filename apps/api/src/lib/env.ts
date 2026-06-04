@@ -1,32 +1,21 @@
 import { z } from "zod";
 
-const envSchema = z
-  .object({
-    NODE_ENV: z
-      .enum(["development", "production", "test"])
-      .default("development"),
-    PORT: z.coerce.number().default(3001),
-    HOST: z.string().default("0.0.0.0"),
-    SUPABASE_URL: z.string().url(),
-    SUPABASE_ANON_KEY: z.string().min(1),
-    SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
-    JWT_SECRET: z.string().optional(),
-    SUPABASE_JWKS_URL: z.string().url(),
-    MASTER_ENCRYPTION_KEY: z.string().base64().min(1),
-    REDIS_URL: z.string().url().optional(),
-    DOCKER_HOST: z.string().optional(),
-    HERMES_URL: z.string().url().default("http://hermes:8765"),
-    CORS_ORIGINS: z.string().optional(),
-  })
-  .refine(
-    (data) => {
-      if (data.NODE_ENV === "production") {
-        return data.SUPABASE_JWKS_URL;
-      }
-      return true;
-    },
-    { message: "SUPABASE_JWKS_URL required in production" }
-  );
+const envSchema = z.object({
+  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+  PORT: z.coerce.number().default(3001),
+  HOST: z.string().default("0.0.0.0"),
+  SUPABASE_URL: z.string().url(),
+  SUPABASE_ANON_KEY: z.string().min(1),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+  JWT_SECRET: z.string().optional(), // Optional - legacy HS256
+  SUPABASE_JWKS_URL: z.string().url(), // Required - always
+  MASTER_ENCRYPTION_KEY: z.string().base64().min(1),
+  REDIS_URL: z.string().url().optional(),
+  DOCKER_HOST: z.string().optional(),
+  HERMES_URL: z.string().url().default("http://hermes:8765"),
+  CORS_ORIGINS: z.string().optional(),
+});
+// No refine — JWKS is always required
 
 export type Env = z.infer<typeof envSchema>;
 
