@@ -10,6 +10,8 @@ import { chatSendRoute } from "./routes/chat/send.js";
 import { chatSessionsRoute } from "./routes/chat/sessions.js";
 import { chatMessagesRoute } from "./routes/chat/messages.js";
 import { wsRoute } from "./routes/ws/handler.js";
+import { servicesRoutes } from "./routes/services/index.js";
+import { secretsRoutes } from "./routes/secrets/index.js";
 
 const env = validateEnv();
 
@@ -40,6 +42,8 @@ await fastify.register(chatSendRoute);
 await fastify.register(chatSessionsRoute);
 await fastify.register(chatMessagesRoute);
 await fastify.register(wsRoute);
+await fastify.register(servicesRoutes);
+await fastify.register(secretsRoutes);
 
 fastify.get("/health", async () => ({ status: "ok", version: "1.5.0" }));
 
