@@ -64,7 +64,8 @@ export async function secretsRoutes(fastify: FastifyInstance): Promise<void> {
     const { error } = await request.supabase
       .from("secrets")
       .delete()
-      .eq("id", id);
+      .eq("id", id)
+      .eq("tenant_id", request.tenantId); // W4-SEC-5: tenant-scoped
 
     if (error) {
       return fail(reply, 404, "NOT_FOUND", "Secret not found");

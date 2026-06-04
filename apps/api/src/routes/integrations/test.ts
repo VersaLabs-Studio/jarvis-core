@@ -1,8 +1,12 @@
 import type { FastifyInstance } from "fastify";
 import { ok, fail } from "../../lib/response.js";
 import { open } from "../../lib/crypto.js";
+import { protectedPlugin } from "../../middleware/protected.js";
 
 export async function integrationTestRoutes(fastify: FastifyInstance): Promise<void> {
+  // Register protected plugin — requires auth + tenant context
+  await fastify.register(protectedPlugin);
+
   fastify.post("/api/integrations/:id/test", async (request, reply) => {
     const { id } = request.params as { id: string };
 

@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { ok, fail, forbidden } from "../../lib/response.js";
+import { protectedPlugin } from "../../middleware/protected.js";
 
 function requireAdmin(request: { role?: string }): boolean {
   const role = request.role;
@@ -7,6 +8,8 @@ function requireAdmin(request: { role?: string }): boolean {
 }
 
 export async function adminRoutes(fastify: FastifyInstance): Promise<void> {
+  // Register protected plugin — requires auth + tenant context
+  await fastify.register(protectedPlugin);
   fastify.get("/api/admin/overview", async (request, reply) => {
     if (!requireAdmin(request)) {
       return forbidden(reply, "Admin access required");
