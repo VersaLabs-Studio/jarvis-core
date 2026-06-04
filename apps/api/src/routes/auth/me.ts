@@ -1,30 +1,22 @@
 import type { FastifyInstance } from "fastify";
 import { ok, fail } from "../../lib/response.js";
+import { protectedPlugin } from "../../middleware/protected.js";
 
 export async function meRoute(fastify: FastifyInstance): Promise<void> {
-  fastify.get("/api/auth/me", async (request, reply) => {
-    const authHeader = request.headers.authorization;
-    if (!authHeader?.startsWith("Bearer ")) {
-      return fail(reply, 401, "UNAUTHENTICATED", "Missing authorization header");
-    }
+  // Register protected plugin — sets request.userId, request.tenantId via JWKS
+  await fastify.register(protectedPlugin);
 
-    const token = authHeader.slice(7);
+  fastify.get("/api/auth/me", async (request, reply) => {
+    // userId and tenantId are set by tenantMiddleware (JWKS verified)
+    const userId = request.userId;
+    const tenantId = request.tenantId;
 
     try {
-      const {
-        data: { user },
-        error: authError,
-      } = await fastify.supabaseAdmin.auth.getUser(token);
-
-      if (authError || !user) {
-        return fail(reply, 401, "UNAUTHENTICATED", "Invalid token");
-      }
-
       const { data: profile, error: profileError } =
-        await fastify.supabaseAdmin
+        await request.supabaseAdmin
           .from("profiles")
           .select("*")
-          .eq("id", user.id)
+          .eq("id", userId)
           .single();
 
       if (profileError || !profile) {
@@ -38,13 +30,12 @@ export async function meRoute(fastify: FastifyInstance): Promise<void> {
 
       return ok(reply, {
         user: {
-          id: user.id,
-          email: user.email,
-          created_at: user.created_at,
+          id: userId,
+          email: profile.email,
         },
         profile,
-        tenant_id: profile.tenant_id,
-        role: profile.role || "member",
+        tenant_id: tenantId,
+        role: request.role || "member",
       });
     } catch (err) {
       console.error("Me error:", err);
