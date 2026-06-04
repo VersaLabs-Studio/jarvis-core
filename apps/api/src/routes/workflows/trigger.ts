@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { ok, fail } from "../../lib/response.js";
 import { env } from "../../lib/env.js";
+import { protectedPlugin } from "../../middleware/protected.js";
 
 const triggerSchema = z.object({
   input: z.record(z.unknown()).optional(),
@@ -9,6 +10,7 @@ const triggerSchema = z.object({
 });
 
 export async function workflowTriggerRoutes(fastify: FastifyInstance): Promise<void> {
+  await fastify.register(protectedPlugin);
   fastify.post("/api/workflows/:id/trigger", async (request, reply) => {
     const { id } = request.params as { id: string };
     const tenantId = request.tenantId;

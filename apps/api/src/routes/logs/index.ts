@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { ok, paginated, fail } from "../../lib/response.js";
+import { protectedPlugin } from "../../middleware/protected.js";
 
 const logQuerySchema = z.object({
   level: z.enum(["info", "warn", "error", "debug"]).optional(),
@@ -12,6 +13,7 @@ const logQuerySchema = z.object({
 });
 
 export async function logsRoutes(fastify: FastifyInstance): Promise<void> {
+  await fastify.register(protectedPlugin);
   fastify.get("/api/logs", async (request, reply) => {
     const parsed = logQuerySchema.safeParse(request.query);
     if (!parsed.success) {

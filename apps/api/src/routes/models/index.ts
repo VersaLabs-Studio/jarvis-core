@@ -1,11 +1,13 @@
 import type { FastifyInstance } from "fastify";
 import { ok, fail } from "../../lib/response.js";
 import { env } from "../../lib/env.js";
+import { protectedPlugin } from "../../middleware/protected.js";
 
 let modelCache: { data: unknown; timestamp: number } | null = null;
 const CACHE_TTL = 5 * 60 * 1000;
 
 export async function modelsRoutes(fastify: FastifyInstance): Promise<void> {
+  await fastify.register(protectedPlugin);
   fastify.get("/api/models", async (request, reply) => {
     if (modelCache && Date.now() - modelCache.timestamp < CACHE_TTL) {
       return ok(reply, modelCache.data);

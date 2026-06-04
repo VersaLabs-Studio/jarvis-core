@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { ok, fail } from "../../lib/response.js";
+import { protectedPlugin } from "../../middleware/protected.js";
 
 const ingestSchema = z.object({
   event_type: z.string().min(1).max(255),
@@ -8,6 +9,7 @@ const ingestSchema = z.object({
 });
 
 export async function analyticsRoutes(fastify: FastifyInstance): Promise<void> {
+  await fastify.register(protectedPlugin);
   fastify.post("/api/analytics/events", async (request, reply) => {
     const parsed = ingestSchema.safeParse(request.body);
     if (!parsed.success) {
