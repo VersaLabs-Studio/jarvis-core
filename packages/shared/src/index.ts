@@ -130,7 +130,7 @@ export {
 } from './schemas/system-log.schema'
 
 // Entity config
-export { ENTITY_CONFIG, type EntityKey } from './config/entities'
+export { entities, ENTITY_CONFIG, type EntityConfig, type EntityKey } from './config/entities'
 
 // Query keys
 export { keys } from './lib/query-keys'
