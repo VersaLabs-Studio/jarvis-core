@@ -7,6 +7,7 @@ export interface ListOpts {
   status?: string;
   sort_by?: string;
   sort_order?: "asc" | "desc";
+  session_id?: string;  // For chat messages filtering
 }
 
 const makeKeys = <K extends string>(entity: K) => ({
@@ -26,6 +27,7 @@ export const keys = {
   workflowRun: makeKeys("workflow_run"),
   analyticsEvent: makeKeys("analytics_event"),
   systemLog: makeKeys("system_log"),
+  model: makeKeys("model"),
 } as const;
 
 export type QueryKeys = typeof keys;
