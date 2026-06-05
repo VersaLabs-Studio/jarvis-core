@@ -21,6 +21,9 @@ export type { AnalyticsEvent, AnalyticsEventRow, AnalyticsEventInsert, Analytics
 export type { SystemLog, SystemLogRow, SystemLogInsert, SystemLogUpdate, SystemLogLevel } from './types/system-log'
 export type { ModelInfo, OpenRouterStatus, RoutingConfig, ModelUsageStats, ModelsResponse } from './types/model'
 
+// Admin types
+export type { SystemInfo, SecuritySettings, BackupStatus, AdminUser, AdminOverview, FileNode, EnvVar, ConfigData } from './types/admin'
+
 // Zod schemas
 export {
   tenantSelectSchema,
