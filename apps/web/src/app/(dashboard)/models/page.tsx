@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { keys } from "@jarvis/shared";
 import type { ModelsResponse, ModelInfo, OpenRouterStatus, RoutingConfig, ModelUsageStats } from "@jarvis/shared";
 import { containerVariants, itemVariants } from "@/lib/motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -20,7 +21,7 @@ import { cn } from "@/lib/cn";
 
 function useModelsData() {
   return useQuery({
-    queryKey: ["models"],
+    queryKey: keys.model.list(),
     queryFn: () => api.getRaw<ModelsResponse>("/api/models"),
   });
 }

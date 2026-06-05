@@ -26,6 +26,7 @@ export const keys = {
   workflowRun: makeKeys("workflow_run"),
   analyticsEvent: makeKeys("analytics_event"),
   systemLog: makeKeys("system_log"),
+  model: makeKeys("model"),
 } as const;
 
 export type QueryKeys = typeof keys;
