@@ -133,7 +133,7 @@ export {
 export { entities, ENTITY_CONFIG, type EntityConfig, type EntityKey } from './config/entities'
 
 // Query keys
-export { keys } from './lib/query-keys'
+export { keys, type ListOpts } from './lib/query-keys'
 
 // API response types
 export * from './types/api'
