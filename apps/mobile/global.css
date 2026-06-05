@@ -4,18 +4,18 @@
 
 @layer base {
   :root {
-    --color-background: oklch(0.145 0 0);
-    --color-foreground: oklch(0.93 0 0);
-    --color-card: oklch(0.18 0 0);
-    --color-card-foreground: oklch(0.93 0 0);
-    --color-muted: oklch(0.25 0 0);
-    --color-muted-foreground: oklch(0.65 0 0);
-    --color-accent: oklch(0.65 0.15 250);
-    --color-accent-foreground: oklch(0.15 0 0);
-    --color-destructive: oklch(0.6 0.2 25);
-    --color-destructive-foreground: oklch(0.93 0 0);
-    --color-border: oklch(0.3 0 0);
-    --color-input: oklch(0.25 0 0);
-    --color-ring: oklch(0.65 0.15 250);
+    --color-background: #1a1a1a;
+    --color-foreground: #eeeeee;
+    --color-card: #262626;
+    --color-card-foreground: #eeeeee;
+    --color-muted: #404040;
+    --color-muted-foreground: #a6a6a6;
+    --color-accent: #4a9eff;
+    --color-accent-foreground: #1a1a1a;
+    --color-destructive: #ff4a4a;
+    --color-destructive-foreground: #eeeeee;
+    --color-border: #4d4d4d;
+    --color-input: #404040;
+    --color-ring: #4a9eff;
   }
 }
