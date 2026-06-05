@@ -12,6 +12,7 @@ export type { ChatMessage, ChatMessageRow, ChatMessageInsert, ChatMessageUpdate,
 export type { WorkflowRun, WorkflowRunRow, WorkflowRunInsert, WorkflowRunUpdate, WorkflowRunStatus } from './workflow-run'
 export type { AnalyticsEvent, AnalyticsEventRow, AnalyticsEventInsert, AnalyticsEventUpdate } from './analytics-event'
 export type { SystemLog, SystemLogRow, SystemLogInsert, SystemLogUpdate, SystemLogLevel } from './system-log'
+export type { ModelInfo, OpenRouterStatus, RoutingConfig, ModelUsageStats, ModelsResponse } from './model'
 
 export type ID = string
 export type Timestamp = string
