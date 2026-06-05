@@ -103,12 +103,17 @@ export function DialogFooter({
 export function DialogTrigger({
   children,
   onClick,
+  asChild,
   className,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
+  asChild?: boolean;
   className?: string;
 }) {
+  if (asChild) {
+    return <>{children}</>;
+  }
   return (
     <div onClick={onClick} className={className}>
       {children}
