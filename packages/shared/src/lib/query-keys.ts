@@ -21,6 +21,11 @@ export const keys = {
   skill: makeKeys("skill"),
   service: makeKeys("service"),
   secret: makeKeys("secret"),
+  chatSession: makeKeys("chat_session"),
+  chatMessage: makeKeys("chat_message"),
+  workflowRun: makeKeys("workflow_run"),
+  analyticsEvent: makeKeys("analytics_event"),
+  systemLog: makeKeys("system_log"),
 } as const;
 
 export type QueryKeys = typeof keys;

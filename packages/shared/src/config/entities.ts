@@ -1,59 +1,52 @@
-export const ENTITY_CONFIG = {
-  workflow: {
-    table: "workflows",
-    label: "Workflow",
-    labelPlural: "Workflows",
-    searchFields: ["name", "description"],
-    labelField: "name",
-    sortField: "created_at",
-    sortOrder: "desc" as const,
-    publicPath: "/api/public/workflows",
-    protectedPath: "/api/cms/workflows",
-  },
-  integration: {
-    table: "integrations",
-    label: "Integration",
-    labelPlural: "Integrations",
-    searchFields: ["name", "provider"],
-    labelField: "name",
-    sortField: "created_at",
-    sortOrder: "desc" as const,
-    publicPath: "/api/public/integrations",
-    protectedPath: "/api/cms/integrations",
-  },
-  skill: {
-    table: "skills",
-    label: "Skill",
-    labelPlural: "Skills",
-    searchFields: ["name", "description"],
-    labelField: "name",
-    sortField: "created_at",
-    sortOrder: "desc" as const,
-    publicPath: "/api/public/skills",
-    protectedPath: "/api/cms/skills",
-  },
-  service: {
-    table: "services",
-    label: "Service",
-    labelPlural: "Services",
-    searchFields: ["name"],
-    labelField: "name",
-    sortField: "created_at",
-    sortOrder: "desc" as const,
-    publicPath: "/api/public/services",
-    protectedPath: "/api/cms/services",
-  },
-  secret: {
-    table: "secrets",
-    label: "Secret",
-    labelPlural: "Secrets",
-    searchFields: ["name"],
-    labelField: "name",
-    sortField: "created_at",
-    sortOrder: "desc" as const,
-    publicPath: "/api/public/secrets",
-    protectedPath: "/api/cms/secrets",
-  },
-} as const;
+import type { z } from "zod";
+import { workflowInsertSchema } from "../schemas/workflow.schema";
+import { integrationInsertSchema } from "../schemas/integration.schema";
+import { skillInsertSchema } from "../schemas/skill.schema";
+import { chatSessionInsertSchema } from "../schemas/chat-session.schema";
+import { workflowRunInsertSchema } from "../schemas/workflow-run.schema";
 
-export type EntityKey = keyof typeof ENTITY_CONFIG;
+export interface EntityConfig {
+  table: string;
+  schema: z.ZodObject<z.ZodRawShape>;
+  singular: string;
+  plural: string;
+  readOnly?: boolean;
+}
+
+export const entities = {
+  workflows: {
+    table: "workflows",
+    schema: workflowInsertSchema,
+    singular: "workflow",
+    plural: "workflows",
+  },
+  integrations: {
+    table: "integrations",
+    schema: integrationInsertSchema,
+    singular: "integration",
+    plural: "integrations",
+  },
+  skills: {
+    table: "skills",
+    schema: skillInsertSchema,
+    singular: "skill",
+    plural: "skills",
+  },
+  chat_session: {
+    table: "chat_sessions",
+    schema: chatSessionInsertSchema,
+    singular: "chat_session",
+    plural: "chat_sessions",
+  },
+  workflow_run: {
+    table: "workflow_runs",
+    schema: workflowRunInsertSchema,
+    singular: "workflow_run",
+    plural: "workflow_runs",
+    readOnly: true,
+  },
+} as const satisfies Record<string, EntityConfig>;
+
+export type EntityKey = keyof typeof entities;
+
+export const ENTITY_CONFIG = entities;
