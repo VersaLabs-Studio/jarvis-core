@@ -7,7 +7,6 @@
 .env
 .env.local
 .env.production
-.env.example
 *.key
 *.pem
 *.p12
@@ -57,6 +56,10 @@ dist/
 build/
 *.tgz
 *.tar.gz
+.next/
+.turbo/
+next-env.d.ts
+tsconfig.tsbuildinfo
 
 # ===========================================
 # COVERAGE & TESTING

@@ -1,0 +1,4 @@
+# Migration hash — used by type-drift-check script
+# Regenerate after adding/modifying migrations
+# Run: Get-Content supabase/migrations/*.sql -Raw | SHA256
+57b3392df3488d640dc8854ae47707d42d77786be4e8179e6fdb544ee9310a22
