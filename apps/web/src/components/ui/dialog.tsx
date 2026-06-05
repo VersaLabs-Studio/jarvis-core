@@ -71,3 +71,47 @@ export function DialogTitle({
     </h2>
   );
 }
+
+export function DialogDescription({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <p className={cn("text-sm text-muted-foreground", className)}>
+      {children}
+    </p>
+  );
+}
+
+export function DialogFooter({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("mt-6 flex justify-end gap-2", className)}>
+      {children}
+    </div>
+  );
+}
+
+export function DialogTrigger({
+  children,
+  onClick,
+  className,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  className?: string;
+}) {
+  return (
+    <div onClick={onClick} className={className}>
+      {children}
+    </div>
+  );
+}

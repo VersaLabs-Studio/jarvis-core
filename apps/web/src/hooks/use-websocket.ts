@@ -80,7 +80,7 @@ export function useWebSocket() {
         if (event.code === 4401) {
           if (!refreshedRef.current) {
             refreshedRef.current = true;
-            supabase.auth.getSession().then(({ data: { session: s } }) => {
+            supabase.auth.refreshSession().then(({ data: { session: s } }) => {
               if (s) {
                 connect();
               } else {
@@ -120,9 +120,9 @@ export function useWebSocket() {
     setStatus("disconnected");
   }, [clearTimeouts]);
 
-  const send = useCallback((type: string, data?: unknown) => {
+  const send = useCallback((type: string, data?: Record<string, unknown>) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type, ...data }));
+      wsRef.current.send(JSON.stringify({ type, ...(data ?? {}) }));
     }
   }, []);
 

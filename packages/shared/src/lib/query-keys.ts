@@ -7,6 +7,7 @@ export interface ListOpts {
   status?: string;
   sort_by?: string;
   sort_order?: "asc" | "desc";
+  session_id?: string;  // For chat messages filtering
 }
 
 const makeKeys = <K extends string>(entity: K) => ({
