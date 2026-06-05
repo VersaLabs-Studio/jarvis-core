@@ -19,6 +19,7 @@ export type { ChatMessage, ChatMessageRow, ChatMessageInsert, ChatMessageUpdate,
 export type { WorkflowRun, WorkflowRunRow, WorkflowRunInsert, WorkflowRunUpdate, WorkflowRunStatus } from './types/workflow-run'
 export type { AnalyticsEvent, AnalyticsEventRow, AnalyticsEventInsert, AnalyticsEventUpdate } from './types/analytics-event'
 export type { SystemLog, SystemLogRow, SystemLogInsert, SystemLogUpdate, SystemLogLevel } from './types/system-log'
+export type { ModelInfo, OpenRouterStatus, RoutingConfig, ModelUsageStats, ModelsResponse } from './types/model'
 
 // Zod schemas
 export {
