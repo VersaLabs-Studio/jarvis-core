@@ -20,6 +20,9 @@ export type { WorkflowRun, WorkflowRunRow, WorkflowRunInsert, WorkflowRunUpdate,
 export type { AnalyticsEvent, AnalyticsEventRow, AnalyticsEventInsert, AnalyticsEventUpdate } from './types/analytics-event'
 export type { SystemLog, SystemLogRow, SystemLogInsert, SystemLogUpdate, SystemLogLevel } from './types/system-log'
 
+// Admin types
+export type { SystemInfo, SecuritySettings, BackupStatus, AdminUser, AdminOverview, FileNode, EnvVar, ConfigData } from './types/admin'
+
 // Zod schemas
 export {
   tenantSelectSchema,
