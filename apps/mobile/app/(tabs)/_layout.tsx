@@ -1,5 +1,7 @@
 import { Tabs } from "expo-router";
 import { View, ColorValue } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { colors } from "@/theme/colors";
 import {
   LayoutDashboard,
   MessageSquare,
@@ -28,31 +30,26 @@ function TabBarIcon({
 }
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "oklch(0.65 0.15 250)", // accent
-        tabBarInactiveTintColor: "oklch(0.65 0 0)", // muted-foreground
+        headerShown: false,
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.subtleForeground,
         tabBarStyle: {
-          backgroundColor: "oklch(0.18 0 0)", // card
-          borderTopColor: "oklch(0.3 0 0)", // border
+          backgroundColor: colors.background,
+          borderTopColor: colors.hairline,
           borderTopWidth: 1,
-          height: 88,
-          paddingBottom: 28,
+          height: 60 + insets.bottom,
+          paddingBottom: insets.bottom,
           paddingTop: 8,
         },
         tabBarLabelStyle: {
           fontFamily: "Outfit",
           fontSize: 12,
           fontWeight: "500",
-        },
-        headerStyle: {
-          backgroundColor: "oklch(0.145 0 0)", // background
-        },
-        headerTintColor: "oklch(0.93 0 0)", // foreground
-        headerTitleStyle: {
-          fontFamily: "Outfit",
-          fontWeight: "600",
         },
       }}
     >
@@ -61,7 +58,6 @@ export default function TabLayout() {
         options={{
           title: "Dashboard",
           tabBarIcon: ({ color }) => <TabBarIcon name="dashboard" color={color} />,
-          headerTitle: "JARVIS",
         }}
       />
       <Tabs.Screen
@@ -69,7 +65,6 @@ export default function TabLayout() {
         options={{
           title: "Chat",
           tabBarIcon: ({ color }) => <TabBarIcon name="chat" color={color} />,
-          headerTitle: "Chat with JARVIS",
         }}
       />
       <Tabs.Screen
@@ -77,7 +72,6 @@ export default function TabLayout() {
         options={{
           title: "Workflows",
           tabBarIcon: ({ color }) => <TabBarIcon name="workflows" color={color} />,
-          headerTitle: "Workflows",
         }}
       />
       <Tabs.Screen
@@ -85,7 +79,6 @@ export default function TabLayout() {
         options={{
           title: "Settings",
           tabBarIcon: ({ color }) => <TabBarIcon name="settings" color={color} />,
-          headerTitle: "Settings",
         }}
       />
     </Tabs>

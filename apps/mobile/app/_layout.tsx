@@ -3,6 +3,7 @@ import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
+import { colors } from "@/theme/colors";
 import "../global.css";
 
 // Prevent splash screen from auto-hiding
@@ -33,7 +34,7 @@ export default function RootLayout() {
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: "#1a1a1a" },
+          contentStyle: { backgroundColor: colors.background },
         }}
       />
     </>

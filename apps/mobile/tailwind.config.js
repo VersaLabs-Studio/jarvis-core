@@ -1,3 +1,5 @@
+const { colors } = require("./theme/colors");
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
@@ -9,28 +11,35 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Dark tokens — semantic names only (hex for RN compatibility)
-        background: "#1a1a1a",
-        foreground: "#eeeeee",
-        card: "#262626",
-        "card-foreground": "#eeeeee",
-        muted: "#404040",
-        "muted-foreground": "#a6a6a6",
-        accent: "#4a9eff",
-        "accent-foreground": "#1a1a1a",
-        destructive: "#ff4a4a",
-        "destructive-foreground": "#eeeeee",
-        border: "#4d4d4d",
-        input: "#404040",
-        ring: "#4a9eff",
+        background: colors.background,
+        foreground: colors.foreground,
+        card: colors.surface,
+        "card-foreground": colors.foreground,
+        "card-elevated": colors.surfaceElevated,
+        muted: colors.overlay,
+        "muted-foreground": colors.mutedForeground,
+        subtle: colors.subtleForeground,
+        accent: colors.accent,
+        "accent-emphasis": colors.accentEmphasis,
+        "accent-foreground": colors.accentForeground,
+        "accent-subtle": colors.accentSubtle,
+        border: colors.border,
+        input: colors.surfaceElevated,
+        ring: colors.accent,
+        success: colors.success,
+        "success-subtle": colors.successSubtle,
+        warning: colors.warning,
+        "warning-subtle": colors.warningSubtle,
+        destructive: colors.danger,
+        "destructive-subtle": colors.dangerSubtle,
       },
       fontFamily: {
         sans: ["Outfit"],
         mono: ["Fira Code"],
       },
       borderRadius: {
-        lg: "16px",
-        md: "12px",
+        lg: "20px", // updated to match card radius 20
+        md: "14px", // updated to match input/btn 14
         sm: "8px",
       },
     },
