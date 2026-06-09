@@ -19,6 +19,10 @@ export type { ChatMessage, ChatMessageRow, ChatMessageInsert, ChatMessageUpdate,
 export type { WorkflowRun, WorkflowRunRow, WorkflowRunInsert, WorkflowRunUpdate, WorkflowRunStatus } from './types/workflow-run'
 export type { AnalyticsEvent, AnalyticsEventRow, AnalyticsEventInsert, AnalyticsEventUpdate } from './types/analytics-event'
 export type { SystemLog, SystemLogRow, SystemLogInsert, SystemLogUpdate, SystemLogLevel } from './types/system-log'
+export type { ModelInfo, OpenRouterStatus, RoutingConfig, ModelUsageStats, ModelsResponse } from './types/model'
+
+// Admin types
+export type { SystemInfo, SecuritySettings, BackupStatus, AdminUser, AdminOverview, FileNode, EnvVar, ConfigData } from './types/admin'
 
 // Zod schemas
 export {
@@ -133,7 +137,7 @@ export {
 export { entities, ENTITY_CONFIG, type EntityConfig, type EntityKey } from './config/entities'
 
 // Query keys
-export { keys } from './lib/query-keys'
+export { keys, type ListOpts } from './lib/query-keys'
 
 // API response types
 export * from './types/api'

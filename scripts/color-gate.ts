@@ -2,14 +2,26 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve, extname } from "node:path";
 
 const ROOT = resolve(import.meta.dirname, "..");
-const TARGET_DIR = join(ROOT, "apps", "web");
+const WEB_TARGET_DIR = join(ROOT, "apps", "web");
+const MOBILE_TARGET_DIRS = [
+  join(ROOT, "apps", "mobile", "app"),
+  join(ROOT, "apps", "mobile", "components"),
+];
 
-const FORBIDDEN_PATTERNS = [
-  /\bbg-white\b/,
-  /\btext-black\b/,
-  /\btext-gray-\d+\b/,
-  /\bbg-gray-\d+\b/,
-  /\bborder-gray-\d+\b/,
+const WEB_FORBIDDEN_PATTERNS = [
+  { pattern: /\bbg-white\b/, name: "bg-white" },
+  { pattern: /\btext-black\b/, name: "text-black" },
+  { pattern: /\btext-gray-\d+\b/, name: "text-gray-N" },
+  { pattern: /\bbg-gray-\d+\b/, name: "bg-gray-N" },
+  { pattern: /\bborder-gray-\d+\b/, name: "border-gray-N" },
+];
+
+const MOBILE_FORBIDDEN_PATTERNS = [
+  { pattern: /#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b/, name: "raw hex" },
+  { pattern: /\brgb\s*\(/, name: "rgb(" },
+  { pattern: /\brgba\s*\(/, name: "rgba(" },
+  { pattern: /\boklch\s*\(/, name: "oklch(" },
+  { pattern: /\bhsl\s*\(/, name: "hsl(" },
 ];
 
 const EXCLUDED_DIRS = ["node_modules", ".next", "dist", ".turbo", "build"];
@@ -30,7 +42,7 @@ function walkDir(dir: string): string[] {
       }
     } else {
       const ext = extname(entry);
-      if ([".ts", ".tsx", ".jsx"].includes(ext)) {
+      if ([".ts", ".tsx", ".jsx", ".js"].includes(ext)) {
         if (!EXCLUDED_EXTS.some((e) => entry.endsWith(e))) {
           files.push(fullPath);
         }
@@ -55,51 +67,80 @@ interface Violation {
   line: number;
   pattern: string;
   content: string;
+  ruleName: string;
 }
 
 function main() {
   console.log("🎨 Color Gate (P4) — checking for hardcoded colors...\n");
-
-  if (!existsSync(TARGET_DIR)) {
-    console.log("⚠️  apps/web/ not found. Skipping color gate.");
-    process.exit(0);
-  }
-
-  const files = walkDir(TARGET_DIR);
   const violations: Violation[] = [];
 
-  for (const file of files) {
-    const content = readFileSync(file, "utf-8");
-    const lines = content.split("\n");
-    const relPath = file.replace(ROOT, "").replace(/\\/g, "/");
+  // 1. Check Web
+  if (existsSync(WEB_TARGET_DIR)) {
+    console.log("Checking apps/web...");
+    const webFiles = walkDir(WEB_TARGET_DIR);
+    for (const file of webFiles) {
+      const content = readFileSync(file, "utf-8");
+      const lines = content.split("\n");
+      const relPath = file.replace(ROOT, "").replace(/\\/g, "/");
 
-    for (let i = 0; i < lines.length; i++) {
-      for (const pattern of FORBIDDEN_PATTERNS) {
-        const match = lines[i]?.match(pattern);
-        if (match) {
-          violations.push({
-            file: relPath,
-            line: i + 1,
-            pattern: match[0],
-            content: lines[i]?.trim() ?? "",
-          });
+      for (let i = 0; i < lines.length; i++) {
+        for (const { pattern, name } of WEB_FORBIDDEN_PATTERNS) {
+          const match = lines[i]?.match(pattern);
+          if (match) {
+            violations.push({
+              file: relPath,
+              line: i + 1,
+              pattern: match[0],
+              content: lines[i]?.trim() ?? "",
+              ruleName: name,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // 2. Check Mobile
+  for (const dir of MOBILE_TARGET_DIRS) {
+    if (existsSync(dir)) {
+      console.log(`Checking mobile directory: ${dir.replace(ROOT, "").replace(/\\/g, "/")}`);
+      const mobileFiles = walkDir(dir);
+      for (const file of mobileFiles) {
+        if (file.endsWith("colors.ts")) continue; // Explicit exclusion for colors.ts
+        const content = readFileSync(file, "utf-8");
+        const lines = content.split("\n");
+        const relPath = file.replace(ROOT, "").replace(/\\/g, "/");
+
+        for (let i = 0; i < lines.length; i++) {
+          for (const { pattern, name } of MOBILE_FORBIDDEN_PATTERNS) {
+            const match = lines[i]?.match(pattern);
+            if (match) {
+              violations.push({
+                file: relPath,
+                line: i + 1,
+                pattern: match[0],
+                content: lines[i]?.trim() ?? "",
+                ruleName: name,
+              });
+            }
+          }
         }
       }
     }
   }
 
   if (violations.length === 0) {
-    console.log("✅ No hardcoded colors found. Use semantic tokens!");
+    console.log("\n✅ No forbidden color usage found. All gates green!");
     process.exit(0);
   }
 
-  console.error(`❌ Found ${violations.length} hardcoded color(s):\n`);
+  console.error(`\n❌ Found ${violations.length} forbidden color pattern(s):\n`);
   for (const v of violations) {
     console.error(`   ${v.file}:${v.line}`);
-    console.error(`   Pattern: ${v.pattern}`);
+    console.error(`   Violation: ${v.ruleName} ('${v.pattern}')`);
     console.error(`   Content: ${v.content}\n`);
   }
-  console.error("Fix: Replace with semantic tokens (bg-background, text-foreground, border-border).");
+  console.error("Fix: Use semantic tokens and colors from theme/colors.ts.");
   process.exit(1);
 }
 
