@@ -91,7 +91,7 @@ function main() {
     process.exit(0);
   }
 
-  console.error(`❌ Found ${violations.length} `any` usage(s):\n`);
+  console.error(`❌ Found ${violations.length} "any" usage(s):\n`);
   for (const v of violations) {
     console.error(`   ${v.file}:${v.line}`);
     console.error(`   Pattern: ${v.pattern}`);

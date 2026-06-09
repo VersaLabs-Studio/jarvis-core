@@ -1,8 +1,12 @@
 import { Stack } from "expo-router";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { StatusBar } from "expo-status-bar";
+import {
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 import { colors } from "@/theme/colors";
 import "../global.css";
 
@@ -10,6 +14,8 @@ import "../global.css";
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const [queryClient] = useState(() => new QueryClient());
+
   const [loaded, error] = useFonts({
     Outfit: require("../assets/fonts/Outfit-Regular.ttf"),
     "Outfit-Medium": require("../assets/fonts/Outfit-Medium.ttf"),
@@ -29,7 +35,7 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <QueryClientProvider client={queryClient}>
       <StatusBar style="light" />
       <Stack
         screenOptions={{
@@ -37,6 +43,6 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: colors.background },
         }}
       />
-    </>
+    </QueryClientProvider>
   );
 }

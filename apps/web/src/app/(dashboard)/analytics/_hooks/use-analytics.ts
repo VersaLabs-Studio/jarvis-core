@@ -13,7 +13,7 @@ export interface AnalyticsSummary {
 
 export function useAnalytics() {
   return useQuery({
-    queryKey: keys.analyticsEvent.list(),
-    queryFn: () => api.getRaw<{ data: AnalyticsSummary }>("/api/analytics"),
+    queryKey: keys.analytics_events.list(),
+    queryFn: () => api.getRaw<{ data: AnalyticsSummary }>("/api/cms/analytics_events"),
   });
 }

@@ -14,7 +14,7 @@ import { colors } from "@/theme/colors";
 import { PressableScale } from "@/components/data-states";
 
 interface SettingItemProps {
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<{ size?: number; color?: string }>;
   label: string;
   description?: string;
   right?: React.ReactNode;

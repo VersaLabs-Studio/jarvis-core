@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, Pressable, PressableProps, GestureResponderEvent } from "react-native";
+import type { StyleProp, ViewStyle, DimensionValue } from "react-native";
 import { MotiView } from "moti";
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
 import { AlertCircle, Inbox } from "lucide-react-native";
@@ -8,7 +9,7 @@ import { colors } from "@/theme/colors";
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 // 1. Shimmer Skeleton
-export function Skeleton({ className, width, height, style }: { className?: string; width?: any; height?: any; style?: any }) {
+export function Skeleton({ className, width, height, style }: { className?: string; width?: DimensionValue; height?: DimensionValue; style?: StyleProp<ViewStyle> }) {
   return (
     <MotiView
       from={{ opacity: 0.4 }}
@@ -46,7 +47,7 @@ export function EmptyState({
   title: string;
   description: string;
   action?: React.ReactNode;
-  icon?: React.ComponentType<any>;
+  icon?: React.ComponentType<{ size?: number; color?: string }>;
   className?: string;
 }) {
   return (
@@ -130,7 +131,7 @@ export function PressableScale({ children, style, ...props }: PressableScaleProp
 
   return (
     <AnimatedPressable
-      style={style ? [style as any, animatedStyle] : animatedStyle}
+      style={style ? [style, animatedStyle] : animatedStyle}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       {...props}
