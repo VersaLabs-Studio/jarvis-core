@@ -21,8 +21,8 @@ import { cn } from "@/lib/cn";
 
 function useModelsData() {
   return useQuery({
-    queryKey: keys.model.list(),
-    queryFn: () => api.getRaw<ModelsResponse>("/api/models"),
+    queryKey: keys.models.list(),
+    queryFn: () => api.getRaw<ModelsResponse>("/api/cms/models"),
   });
 }
 

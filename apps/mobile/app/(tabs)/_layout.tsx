@@ -18,7 +18,7 @@ function TabBarIcon({
   color: ColorValue;
   size?: number;
 }) {
-  const icons: Record<string, React.ComponentType<any>> = {
+  const icons: Record<string, React.ComponentType<{ size?: number; color?: ColorValue }>> = {
     dashboard: LayoutDashboard,
     chat: MessageSquare,
     workflows: Workflow,
