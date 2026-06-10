@@ -57,10 +57,10 @@ export function validateEnv(): Env {
 }
 
 export function getEnv(): Env {
-  if (!_env) {
-    throw new Error("Env not validated. Call validateEnv() first.");
-  }
-  return _env;
+  // Self-initialize: ESM evaluates imported module bodies before the importer's
+  // body, so a module accessing `env` at import-time (e.g. auth-verify's JWKS)
+  // can run before server.ts calls validateEnv(). Validate on first access.
+  return _env ?? validateEnv();
 }
 
 export const env = new Proxy({} as Env, {
