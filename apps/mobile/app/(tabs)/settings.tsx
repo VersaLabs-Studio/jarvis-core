@@ -1,5 +1,6 @@
 import { View, Text, Switch, ScrollView } from "react-native";
 import { useState, useCallback } from "react";
+import { useRouter } from "expo-router";
 import { MotiView } from "moti";
 import {
   Server,
@@ -12,6 +13,29 @@ import {
 import { ScreenHeader } from "@/components/screen-header";
 import { colors } from "@/theme/colors";
 import { PressableScale } from "@/components/data-states";
+import { supabase } from "@/lib/supabase";
+import Constants from "expo-constants";
+import * as SecureStore from "expo-secure-store";
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function getServerUrl(): string {
+  return (
+    (Constants.expoConfig?.extra?.apiUrl as string | undefined) ??
+    process.env.EXPO_PUBLIC_API_URL ??
+    "http://localhost:4000"
+  );
+}
+
+function getAppVersion(): string {
+  return Constants.expoConfig?.version ?? "1.5.0";
+}
+
+// ---------------------------------------------------------------------------
+// SettingItem
+// ---------------------------------------------------------------------------
 
 interface SettingItemProps {
   icon: React.ComponentType<{ size?: number; color?: string }>;
@@ -62,12 +86,26 @@ function SettingItem({
   );
 }
 
+// ---------------------------------------------------------------------------
+// Settings Screen
+// ---------------------------------------------------------------------------
+
 export default function SettingsScreen() {
   const [notifications, setNotifications] = useState(true);
+  const router = useRouter();
 
-  const handleLogout = useCallback(() => {
-    console.log("Logout triggered");
-  }, []);
+  const handleLogout = useCallback(async () => {
+    try {
+      await supabase.auth.signOut();
+      await SecureStore.deleteItemAsync("supabase.auth.token");
+    } catch {
+      // signOut is best-effort on device
+    }
+    router.replace("/");
+  }, [router]);
+
+  const serverUrl = getServerUrl();
+  const version = getAppVersion();
 
   return (
     <View className="flex-1 bg-background">
@@ -97,7 +135,7 @@ export default function SettingsScreen() {
               <SettingItem
                 icon={Server}
                 label="Server URL"
-                description="http://localhost:4000"
+                description={serverUrl}
                 iconBg={colors.accentSubtle}
                 iconColor={colors.accent}
                 onPress={() => {}}
@@ -170,11 +208,11 @@ export default function SettingsScreen() {
               <SettingItem
                 icon={Info}
                 label="Version"
-                description="JARVIS v1.5.0 (Expo)"
+                description={`JARVIS v${version} (Expo)`}
                 iconBg={colors.overlay}
                 iconColor={colors.subtleForeground}
                 right={
-                  <Text className="text-muted-foreground font-mono text-sm mr-2">1.5.0</Text>
+                  <Text className="text-muted-foreground font-mono text-sm mr-2">{version}</Text>
                 }
               />
             </View>
