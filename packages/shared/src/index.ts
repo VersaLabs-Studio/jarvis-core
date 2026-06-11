@@ -141,3 +141,21 @@ export { keys, type ListOpts, type CrudEntityKey } from './lib/query-keys'
 
 // API response types
 export * from './types/api'
+
+// Hermes wire contract + skill/cron schemas (Phase E)
+export * from './types/hermes'
+export {
+  skillFrontmatterSchema,
+  skillDocSchema,
+  skillCategorySchema,
+  skillRoleSchema,
+  estimatedTimeSchema,
+  type SkillFrontmatter,
+  type SkillDoc,
+  cronJobSchema,
+  cronRegistrySchema,
+  cronScheduleSchema,
+  cronNotifySchema,
+  type CronJob,
+  type CronRegistry,
+} from './schemas'

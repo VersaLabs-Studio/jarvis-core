@@ -1,42 +1,17 @@
+// =============================================================================
+// apps/api/src/lib/hermes.ts
+// Hermes HTTP client (SSE) — talks to the Hermes agent runtime on the
+// `jarvis-internal` network. The wire contract is owned by
+// `@jarvis/shared` (Phase E §1.2 resolution: client shape is canonical).
+// =============================================================================
+
 import { env } from "./env.js";
+import type { SendMessageParams, HermesStreamChunk } from "@jarvis/shared";
 
-export interface HermesMessage {
-  role: 'user' | 'assistant' | 'system' | 'tool';
-  content: string;
-  model?: string;
-  tools_used?: string[];
-}
-
-/**
- * SSE chunk types from Hermes streaming API.
- * 
- * - `chunk` — Incremental content token from the LLM
- * - `tool_call` — Tool invocation with name and arguments
- * - `done` — Stream complete, includes token usage metrics
- * - `error` — Error during generation
- */
-export interface HermesStreamChunk {
-  type: 'chunk' | 'tool_call' | 'done' | 'error';
-  data: {
-    content?: string;
-    tool?: string;
-    args?: unknown;
-    error?: string;
-    usage?: {
-      tokens_in: number;
-      tokens_out: number;
-      duration_ms: number;
-    };
-  };
-}
-
-export interface SendMessageParams {
-  sessionId: string;
-  message: string;
-  model?: string;
-  tools?: string[];
-  history?: HermesMessage[];
-}
+// Re-export the wire types so existing API consumers can keep importing
+// from this path (backward compat). New code should import from
+// `@jarvis/shared` directly.
+export type { HermesMessage, HermesStreamChunk, SendMessageParams } from "@jarvis/shared";
 
 /**
  * Hermes HTTP client for chat streaming.
