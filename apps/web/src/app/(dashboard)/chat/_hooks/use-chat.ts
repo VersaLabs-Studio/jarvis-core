@@ -9,17 +9,17 @@ import type { ChatSession, ChatMessage } from "@jarvis/shared";
 
 export function useChatSessions() {
   return useQuery({
-    queryKey: keys.chatSession.list(),
+    queryKey: keys.chat_sessions.list(),
     queryFn: () => api.list<ChatSession>("chat_sessions"),
   });
 }
 
 export function useChatMessages(sessionId: string) {
   return useQuery({
-    queryKey: keys.chatMessage.list({ session_id: sessionId }),
+    queryKey: keys.chat_messages.list({ session_id: sessionId }),
     queryFn: () =>
       api.getRaw<{ data: ChatMessage[] }>(
-        `/api/chat_sessions/${sessionId}/messages`
+        `/api/chat/sessions/${sessionId}/messages`
       ),
     enabled: !!sessionId,
   });

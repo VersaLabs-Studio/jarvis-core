@@ -28,9 +28,9 @@ export function useTriggerWorkflow() {
 
   return useMutation({
     mutationFn: (workflowId: string) =>
-      api.post<{ data: WorkflowRun }>(`/api/workflows/${workflowId}/trigger`),
+      api.post<{ data: WorkflowRun }>(`/api/cms/workflow_runs/${workflowId}/trigger`),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: keys.workflowRun.all() });
+      qc.invalidateQueries({ queryKey: keys["workflow_runs"].all() });
       toast.success("Workflow triggered");
     },
     onError: (e: Error) => toast.error(e.message ?? "Trigger failed"),

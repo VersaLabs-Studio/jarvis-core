@@ -17,13 +17,13 @@ export interface LogFilters {
 
 export function useLogs(filters?: LogFilters) {
   return useQuery({
-    queryKey: keys.systemLog.list(filters as Record<string, unknown>),
+    queryKey: keys["system_logs"].list(filters as Record<string, unknown>),
     queryFn: () => {
       const params = new URLSearchParams();
       if (filters?.level) params.set("level", filters.level);
       if (filters?.service) params.set("service", filters.service);
       const qs = params.toString();
-      return api.getRaw<{ data: SystemLog[] }>(`/api/logs${qs ? `?${qs}` : ""}`);
+      return api.getRaw<{ data: SystemLog[] }>(`/api/cms/system_logs${qs ? `?${qs}` : ""}`);
     },
   });
 }

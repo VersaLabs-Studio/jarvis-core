@@ -30,7 +30,7 @@ interface DashboardSummary {
 
 function useDashboardData() {
   return useQuery({
-    queryKey: keys.service.list(),
+    queryKey: keys.services.list(),
     queryFn: () => api.list<Service>("services"),
   });
 }

@@ -222,3 +222,16 @@ export function createWebSocket() {
     },
   };
 }
+
+// ---------------------------------------------------------------------------
+// Module-level singleton (shared by app init in _layout + chat handlers)
+// ---------------------------------------------------------------------------
+
+let _wsInstance: ReturnType<typeof createWebSocket> | null = null;
+
+export function getWs(): ReturnType<typeof createWebSocket> {
+  if (!_wsInstance) {
+    _wsInstance = createWebSocket();
+  }
+  return _wsInstance;
+}
