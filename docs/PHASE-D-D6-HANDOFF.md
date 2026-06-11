@@ -95,4 +95,17 @@ Not a code task and not a fan-out blocker — it gates the live `GET /api/cms/wo
 
 ---
 
+## 6. D3∥D4∥D5 gate result + carryover (added after the BRAIN gate, June 11)
+
+**D3∥D4∥D5 GATED GREEN (8.7/10) and merged to `phase/d-mobile` (`be33434`).** Merged-tree gate: frozen install 0, mobile+web `tsc` 0, color/any 0, **no service-role on device**, no `/api/${entity}` or `/api/cms` misuse; D-P4-1 (four states on dashboard/workflows/chat), D-WS-1 (shared `lib/websocket`), D-SEC-1 (logout clears SecureStore), D-P6-1, D-COLOR-1 all satisfied. The live `GET /api/cms/workflows → 200` is **WAIVED for the phase by architect approval** (deferred to production-readiness; still needs Blocker B / §2 to be *truly* closed — it was not executed).
+
+**Carryover cleanups (non-blocking — fold into D6 or a tiny cleanup pass, NOT their own loop):**
+1. **D-P2-1 (P1) — dashboard inline query keys.** `apps/mobile/app/(tabs)/index.tsx` (lines 35, 174–176) uses raw tuples `["workflows"]`, `["chat_sessions"]`, `["services","health"]` for `useServiceHealth` + `onRefresh` invalidation instead of the shared `keys` factory. Swap the workflows/chat_sessions invalidations to `keys.workflows.all()` / `keys.chat_sessions.all()`; add a small key for service-health so it's not a bare tuple. (Functionally works today via prefix-match — hence non-blocking.)
+2. **Port-trap (P2) — settings server-URL.** `settings.tsx getServerUrl()` falls back to `http://localhost:4000` (stale port; API is 3001). Display-only; align it with `lib/api`'s `getApiUrl()` so there's one source of truth.
+3. **N+1 (P2) — workflow runs.** `workflows.tsx WorkflowCardWithData` calls `useWorkflowRuns` per card → N parallel requests. Consider one batched runs query keyed by the visible workflow ids.
+
+Plus the two API-foundation carryovers from §1 (redundant global `request.supabase` hook now that `tenantMiddleware` sets a verified client; a `protectedScope()` helper to de-boilerplate per-module registration).
+
+---
+
 *JARVIS v1.5 Phase D — WP-0 API Foundation + D6 Native Platform Dispatch — © 2026 Kidus Abdula / VersaLabs Studio.*
