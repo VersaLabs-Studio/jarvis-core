@@ -15,7 +15,7 @@ import {
   CheckCircle,
   AlertTriangle,
 } from "lucide-react-native";
-import type { Workflow as WorkflowType } from "@jarvis/shared";
+import { keys, type Workflow as WorkflowType } from "@jarvis/shared";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -32,7 +32,7 @@ interface ServiceHealth {
 
 function useServiceHealth() {
   return useQuery<ServiceHealth[]>({
-    queryKey: ["services", "health"],
+    queryKey: keys.service_health.all(),
     queryFn: () => api.getRaw<ServiceHealth[]>("/api/services"),
   });
 }
@@ -171,9 +171,9 @@ export default function DashboardScreen() {
 
   const onRefresh = () => {
     void Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["workflows"] }),
-      queryClient.invalidateQueries({ queryKey: ["chat_sessions"] }),
-      queryClient.invalidateQueries({ queryKey: ["services", "health"] }),
+      queryClient.invalidateQueries({ queryKey: keys.workflows.all() }),
+      queryClient.invalidateQueries({ queryKey: keys.chat_sessions.all() }),
+      queryClient.invalidateQueries({ queryKey: keys.service_health.all() }),
     ]);
   };
 

@@ -8,6 +8,8 @@ import {
   QueryClientProvider,
 } from "@tanstack/react-query";
 import { colors } from "@/theme/colors";
+import { getWs } from "@/lib/websocket";
+import { initNotifications } from "@/lib/notifications";
 import "../global.css";
 
 // Prevent splash screen from auto-hiding
@@ -29,6 +31,18 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [loaded, error]);
+
+  // D6: app-level WS + notifications + session restore
+  useEffect(() => {
+    // SecureStore cold-start restore is automatic — the chunked storage adapter
+    // in lib/supabase.ts is wired to Supabase's `auth.storage`, so the session
+    // is restored before this layout mounts. No explicit code needed here.
+    getWs().connect();
+    const cleanup = initNotifications();
+    return () => {
+      cleanup();
+    };
+  }, []);
 
   if (!loaded && !error) {
     return null;

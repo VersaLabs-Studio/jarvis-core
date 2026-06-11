@@ -1,4 +1,4 @@
-export { keys } from "./query-keys.js";
+export { keys, type ListOpts, type CrudEntityKey } from "./query-keys.js";
 
 export function cn(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(" ");
