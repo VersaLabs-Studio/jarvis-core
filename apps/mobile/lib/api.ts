@@ -22,7 +22,7 @@ export class ApiClientError extends Error {
 // API URL resolution
 // ---------------------------------------------------------------------------
 
-function getApiUrl(): string {
+export function getApiUrl(): string {
   return (
     (Constants.expoConfig?.extra?.apiUrl as string | undefined) ??
     process.env.EXPO_PUBLIC_API_URL ??

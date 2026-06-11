@@ -5,23 +5,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { keys } from '@jarvis/shared';
 import type { ChatSession, ChatMessage } from '@jarvis/shared';
 import { api } from '@/lib/api';
-import { createWebSocket, type WsStatus } from '@/lib/websocket';
+import { getWs, type WsStatus } from '@/lib/websocket';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import * as Haptics from 'expo-haptics';
+import { haptics } from '@/lib/haptics';
 import { Alert } from 'react-native';
-
-// ---------------------------------------------------------------------------
-// WebSocket singleton for chat streaming
-// ---------------------------------------------------------------------------
-
-let wsInstance: ReturnType<typeof createWebSocket> | null = null;
-
-function getWs() {
-  if (!wsInstance) {
-    wsInstance = createWebSocket();
-  }
-  return wsInstance;
-}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -77,10 +64,10 @@ export function useCreateChatSession() {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: keys.chat_sessions.all() });
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      haptics.light();
     },
     onError: (e: Error) => {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      haptics.error();
       Alert.alert('Error', e.message ?? 'Failed to create session');
     },
   });
@@ -106,7 +93,7 @@ export function useChatMessages(sessionId: string | null) {
 // Combined chat hook
 // ---------------------------------------------------------------------------
 
-export function useChat(): UseChatReturn {
+export function useChat(initialSessionId?: string | null): UseChatReturn {
   const [activeSession, setActiveSession] = useState<ChatSession | null>(null);
   const [streamingMessages, setStreamingMessages] = useState<
     ChatMessageLocal[]
@@ -158,6 +145,24 @@ export function useChat(): UseChatReturn {
       messages.push(msg);
     }
   }
+
+  // Resolved sessions list (used by the pre-select effect below)
+  const sessions: ChatSession[] = sessionsData?.data ?? [];
+
+  // Pre-select: deep-link > first session
+  useEffect(() => {
+    if (sessionsLoading || sessions.length === 0) return;
+    if (initialSessionId) {
+      const match = sessions.find((s) => s.id === initialSessionId);
+      if (match) {
+        setActiveSession(match);
+        return;
+      }
+    }
+    if (!activeSession) {
+      setActiveSession(sessions[0]);
+    }
+  }, [sessions, sessionsLoading, initialSessionId]);
 
   // WebSocket connection + handlers
   useEffect(() => {
@@ -230,8 +235,6 @@ export function useChat(): UseChatReturn {
       setSendStreaming(false);
     });
 
-    ws.connect();
-
     return () => {
       unsubStatus();
       unsubChunk();
@@ -240,12 +243,6 @@ export function useChat(): UseChatReturn {
       unsubCancelled();
     };
   }, [refreshMessages]);
-
-  useEffect(() => {
-    return () => {
-      getWs().disconnect();
-    };
-  }, []);
 
   // Send message with streaming
   const sendMessage = useCallback(
@@ -291,7 +288,7 @@ export function useChat(): UseChatReturn {
   );
 
   return {
-    sessions: sessionsData?.data ?? [],
+    sessions,
     sessionsLoading,
     sessionsError,
     activeSession,

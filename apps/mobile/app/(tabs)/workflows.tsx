@@ -1,14 +1,14 @@
 import { View, Text, FlatList, RefreshControl, Alert } from 'react-native';
 import { useState, useCallback } from 'react';
 import { MotiView } from 'moti';
-import * as Haptics from 'expo-haptics';
 import { ScreenHeader } from '@/components/screen-header';
 import { colors } from '@/theme/colors';
 import { EmptyState, ErrorState, PressableScale, SkeletonCard } from '@/components/data-states';
 import { Workflow as WorkflowIcon, Play } from 'lucide-react-native';
 import type { Workflow, WorkflowRun } from '@jarvis/shared';
 import { useList } from '@/hooks/use-entity';
-import { useWorkflowRuns } from '@/hooks/use-workflow-runs';
+import { useWorkflowRunsBatched } from '@/hooks/use-workflow-runs-batched';
+import { haptics } from '@/lib/haptics';
 import { api } from '@/lib/api';
 
 // ---------------------------------------------------------------------------
@@ -129,16 +129,15 @@ function WorkflowCard({
 
 function WorkflowCardWithData({
   workflow,
+  runs,
   onTrigger,
   index,
 }: {
   workflow: Workflow;
+  runs: WorkflowRun[];
   onTrigger: (id: string) => void;
   index: number;
 }) {
-  const { data: runsData } = useWorkflowRuns(workflow.id);
-  const runs = runsData?.data ?? [];
-
   return (
     <WorkflowCard
       workflow={workflow}
@@ -182,6 +181,9 @@ export default function WorkflowsScreen() {
 
   const workflows = data?.data ?? [];
 
+  const workflowIds = workflows.map((w) => w.id);
+  const { data: runsByWorkflow } = useWorkflowRunsBatched(workflowIds);
+
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
     refetch().finally(() => setRefreshing(false));
@@ -194,10 +196,10 @@ export default function WorkflowsScreen() {
   const handleTrigger = useCallback(async (id: string) => {
     try {
       await api.post(`/api/workflows/${id}/trigger`);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      haptics.success();
       refetch();
     } catch (e: unknown) {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      haptics.error();
       const msg = e instanceof Error ? e.message : 'Trigger failed';
       Alert.alert('Error', msg);
     }
@@ -221,6 +223,7 @@ export default function WorkflowsScreen() {
           renderItem={({ item, index }) => (
             <WorkflowCardWithData
               workflow={item}
+              runs={runsByWorkflow?.[item.id] ?? []}
               onTrigger={handleTrigger}
               index={index}
             />

@@ -14,20 +14,12 @@ import { ScreenHeader } from "@/components/screen-header";
 import { colors } from "@/theme/colors";
 import { PressableScale } from "@/components/data-states";
 import { supabase } from "@/lib/supabase";
+import { getApiUrl } from "@/lib/api";
 import Constants from "expo-constants";
-import * as SecureStore from "expo-secure-store";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function getServerUrl(): string {
-  return (
-    (Constants.expoConfig?.extra?.apiUrl as string | undefined) ??
-    process.env.EXPO_PUBLIC_API_URL ??
-    "http://localhost:4000"
-  );
-}
 
 function getAppVersion(): string {
   return Constants.expoConfig?.version ?? "1.5.0";
@@ -96,15 +88,18 @@ export default function SettingsScreen() {
 
   const handleLogout = useCallback(async () => {
     try {
+      // supabase.auth.signOut() clears SecureStore via the chunked storage
+      // adapter (lib/supabase.ts:secureStoreAdapter). The previous extra
+      // SecureStore.deleteItemAsync("supabase.auth.token") used a WRONG key
+      // and was dead code — removed in D6.
       await supabase.auth.signOut();
-      await SecureStore.deleteItemAsync("supabase.auth.token");
     } catch {
       // signOut is best-effort on device
     }
     router.replace("/");
   }, [router]);
 
-  const serverUrl = getServerUrl();
+  const serverUrl = getApiUrl();
   const version = getAppVersion();
 
   return (
