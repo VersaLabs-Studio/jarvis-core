@@ -4,6 +4,12 @@
   "version": "1.5.0",
   "description": "JARVIS v1.5 — AI-powered platform monorepo",
   "packageManager": "pnpm@9.15.4",
+  "pnpm": {
+    "overrides": {
+      "react": "19.2.3",
+      "react-dom": "19.2.3"
+    }
+  },
   "engines": {
     "node": ">=20.0.0"
   },
