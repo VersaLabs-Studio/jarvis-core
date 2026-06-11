@@ -1,6 +1,6 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
 import { createClient } from "@supabase/supabase-js";
-import { verifyAccessToken } from "../lib/auth-verify.js";
+import { verifyAccessToken, NoTenantError } from "../lib/auth-verify.js";
 import { env } from "../lib/env.js";
 import { fail } from "../lib/response.js";
 
@@ -31,6 +31,9 @@ export async function tenantMiddleware(
       env.SUPABASE_SERVICE_ROLE_KEY
     );
   } catch (err) {
+    if (err instanceof NoTenantError) {
+      return fail(reply, 401, "NO_TENANT", "No tenant associated with this token");
+    }
     if (err instanceof Error && err.name === "JWTExpired") {
       return fail(reply, 401, "UNAUTHENTICATED", "Token expired");
     }

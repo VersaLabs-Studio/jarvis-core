@@ -26,6 +26,7 @@ export type ApiResponse<T> = ApiOk<T> | ApiPaginated<T> | ApiError;
 export type ErrorCode =
   | "VALIDATION"
   | "UNAUTHENTICATED"
+  | "NO_TENANT"
   | "FORBIDDEN"
   | "NOT_FOUND"
   | "RATE_LIMITED"
@@ -36,6 +37,7 @@ export type ErrorCode =
 export const ERROR_STATUS: Record<ErrorCode, number> = {
   VALIDATION: 422,
   UNAUTHENTICATED: 401,
+  NO_TENANT: 401,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
   RATE_LIMITED: 429,

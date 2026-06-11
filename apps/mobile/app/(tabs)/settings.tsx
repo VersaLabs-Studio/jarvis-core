@@ -1,5 +1,6 @@
 import { View, Text, Switch, ScrollView } from "react-native";
 import { useState, useCallback } from "react";
+import { useRouter } from "expo-router";
 import { MotiView } from "moti";
 import {
   Server,
@@ -12,9 +13,24 @@ import {
 import { ScreenHeader } from "@/components/screen-header";
 import { colors } from "@/theme/colors";
 import { PressableScale } from "@/components/data-states";
+import { supabase } from "@/lib/supabase";
+import { getApiUrl } from "@/lib/api";
+import Constants from "expo-constants";
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function getAppVersion(): string {
+  return Constants.expoConfig?.version ?? "1.5.0";
+}
+
+// ---------------------------------------------------------------------------
+// SettingItem
+// ---------------------------------------------------------------------------
 
 interface SettingItemProps {
-  icon: React.ComponentType<any>;
+  icon: React.ComponentType<{ size?: number; color?: string }>;
   label: string;
   description?: string;
   right?: React.ReactNode;
@@ -62,12 +78,29 @@ function SettingItem({
   );
 }
 
+// ---------------------------------------------------------------------------
+// Settings Screen
+// ---------------------------------------------------------------------------
+
 export default function SettingsScreen() {
   const [notifications, setNotifications] = useState(true);
+  const router = useRouter();
 
-  const handleLogout = useCallback(() => {
-    console.log("Logout triggered");
-  }, []);
+  const handleLogout = useCallback(async () => {
+    try {
+      // supabase.auth.signOut() clears SecureStore via the chunked storage
+      // adapter (lib/supabase.ts:secureStoreAdapter). The previous extra
+      // SecureStore.deleteItemAsync("supabase.auth.token") used a WRONG key
+      // and was dead code — removed in D6.
+      await supabase.auth.signOut();
+    } catch {
+      // signOut is best-effort on device
+    }
+    router.replace("/");
+  }, [router]);
+
+  const serverUrl = getApiUrl();
+  const version = getAppVersion();
 
   return (
     <View className="flex-1 bg-background">
@@ -97,7 +130,7 @@ export default function SettingsScreen() {
               <SettingItem
                 icon={Server}
                 label="Server URL"
-                description="http://localhost:4000"
+                description={serverUrl}
                 iconBg={colors.accentSubtle}
                 iconColor={colors.accent}
                 onPress={() => {}}
@@ -170,11 +203,11 @@ export default function SettingsScreen() {
               <SettingItem
                 icon={Info}
                 label="Version"
-                description="JARVIS v1.5.0 (Expo)"
+                description={`JARVIS v${version} (Expo)`}
                 iconBg={colors.overlay}
                 iconColor={colors.subtleForeground}
                 right={
-                  <Text className="text-muted-foreground font-mono text-sm mr-2">1.5.0</Text>
+                  <Text className="text-muted-foreground font-mono text-sm mr-2">{version}</Text>
                 }
               />
             </View>

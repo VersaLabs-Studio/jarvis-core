@@ -21,7 +21,7 @@ export async function verifyAccessToken(token: string): Promise<VerifiedToken> {
 
   const tenantId = decoded.tenant_id;
   if (!tenantId) {
-    throw new Error("No tenant associated with this token");
+    throw new NoTenantError();
   }
 
   return {
@@ -29,4 +29,12 @@ export async function verifyAccessToken(token: string): Promise<VerifiedToken> {
     userId: decoded.sub,
     role: decoded.app_metadata?.role || "member",
   };
+}
+
+export class NoTenantError extends Error {
+  readonly code = "NO_TENANT" as const;
+  constructor() {
+    super("No tenant associated with this token");
+    this.name = "NoTenantError";
+  }
 }

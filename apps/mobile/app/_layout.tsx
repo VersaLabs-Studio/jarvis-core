@@ -1,15 +1,23 @@
 import { Stack } from "expo-router";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { StatusBar } from "expo-status-bar";
+import {
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 import { colors } from "@/theme/colors";
+import { getWs } from "@/lib/websocket";
+import { initNotifications } from "@/lib/notifications";
 import "../global.css";
 
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const [queryClient] = useState(() => new QueryClient());
+
   const [loaded, error] = useFonts({
     Outfit: require("../assets/fonts/Outfit-Regular.ttf"),
     "Outfit-Medium": require("../assets/fonts/Outfit-Medium.ttf"),
@@ -24,12 +32,24 @@ export default function RootLayout() {
     }
   }, [loaded, error]);
 
+  // D6: app-level WS + notifications + session restore
+  useEffect(() => {
+    // SecureStore cold-start restore is automatic — the chunked storage adapter
+    // in lib/supabase.ts is wired to Supabase's `auth.storage`, so the session
+    // is restored before this layout mounts. No explicit code needed here.
+    getWs().connect();
+    const cleanup = initNotifications();
+    return () => {
+      cleanup();
+    };
+  }, []);
+
   if (!loaded && !error) {
     return null;
   }
 
   return (
-    <>
+    <QueryClientProvider client={queryClient}>
       <StatusBar style="light" />
       <Stack
         screenOptions={{
@@ -37,6 +57,6 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: colors.background },
         }}
       />
-    </>
+    </QueryClientProvider>
   );
 }

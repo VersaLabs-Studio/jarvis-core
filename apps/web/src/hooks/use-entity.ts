@@ -1,29 +1,30 @@
+// D-P2-1: Uses shared keys factory from @jarvis/shared — closes PC-DRY-1
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { ListOpts } from "@jarvis/shared";
+import { keys, type ListOpts, type CrudEntityKey } from "@jarvis/shared";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 
-function useInvalidate(entity: string) {
+function useInvalidate(entity: CrudEntityKey) {
   const qc = useQueryClient();
-  return () => qc.invalidateQueries({ queryKey: [entity] });
+  return () => qc.invalidateQueries({ queryKey: keys[entity].all() });
 }
 
-export function useList<T>(entity: string, opts?: ListOpts) {
+export function useList<T>(entity: CrudEntityKey, opts?: ListOpts) {
   return useQuery({
-    queryKey: [entity, "list", opts] as const,
+    queryKey: keys[entity].list(opts),
     queryFn: () => api.list<T>(entity, opts),
   });
 }
 
-export function useDoc<T>(entity: string, id: string) {
+export function useDoc<T>(entity: CrudEntityKey, id: string) {
   return useQuery({
-    queryKey: [entity, "doc", id] as const,
+    queryKey: keys[entity].doc(id),
     queryFn: () => api.get<T>(entity, id),
     enabled: !!id,
   });
 }
 
-export function useCreate<T>(entity: string) {
+export function useCreate<T>(entity: CrudEntityKey) {
   const invalidate = useInvalidate(entity);
 
   return useMutation({
@@ -36,7 +37,7 @@ export function useCreate<T>(entity: string) {
   });
 }
 
-export function useUpdate<T>(entity: string) {
+export function useUpdate<T>(entity: CrudEntityKey) {
   const invalidate = useInvalidate(entity);
 
   return useMutation({
@@ -50,7 +51,7 @@ export function useUpdate<T>(entity: string) {
   });
 }
 
-export function useDelete(entity: string) {
+export function useDelete(entity: CrudEntityKey) {
   const invalidate = useInvalidate(entity);
 
   return useMutation({
