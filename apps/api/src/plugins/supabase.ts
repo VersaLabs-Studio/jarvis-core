@@ -1,8 +1,9 @@
+import fp from "fastify-plugin";
 import type { FastifyInstance } from "fastify";
 import { createClient } from "@supabase/supabase-js";
 import { env } from "../lib/env.js";
 
-export async function supabasePlugin(fastify: FastifyInstance): Promise<void> {
+export const supabasePlugin = fp(async function supabasePlugin(fastify: FastifyInstance): Promise<void> {
   const adminClient = createClient(
     env.SUPABASE_URL,
     env.SUPABASE_SERVICE_ROLE_KEY
@@ -23,4 +24,4 @@ export async function supabasePlugin(fastify: FastifyInstance): Promise<void> {
       );
     }
   });
-}
+});

@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { verifyAccessToken } from "../../lib/auth-verify.js";
+import { verifyAccessToken, NoTenantError } from "../../lib/auth-verify.js";
 import { getHermesClient } from "../../lib/hermes.js";
 
 type WebSocket = import("@fastify/websocket").WebSocket;
@@ -35,6 +35,11 @@ export async function wsRoute(fastify: FastifyInstance): Promise<void> {
       const verified = await verifyAccessToken(token);
       ctx = { ...verified, isAlive: true };
     } catch (err) {
+      if (err instanceof NoTenantError) {
+        fastify.log.warn("WS auth failed: no tenant");
+        socket.close(4401, "No tenant");
+        return;
+      }
       fastify.log.warn(`WS auth failed: ${err instanceof Error ? err.message : "unknown"}`);
       socket.close(4401, "Invalid token");
       return;

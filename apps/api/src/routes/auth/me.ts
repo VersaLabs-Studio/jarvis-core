@@ -1,45 +1,49 @@
 import type { FastifyInstance } from "fastify";
 import { ok, fail } from "../../lib/response.js";
-import { protectedPlugin } from "../../middleware/protected.js";
+import { tenantMiddleware } from "../../middleware/tenant.js";
 
 export async function meRoute(fastify: FastifyInstance): Promise<void> {
-  // Register protected plugin — sets request.userId, request.tenantId via JWKS
-  await fastify.register(protectedPlugin);
+  // Auth hook and route must share the same Fastify instance. Encapsulating
+  // the route in a scope that owns the preHandler is what makes
+  // request.userId/tenantId/supabaseAdmin available inside the handler.
+  await fastify.register(async (s) => {
+    s.addHook("preHandler", tenantMiddleware);
 
-  fastify.get("/api/auth/me", async (request, reply) => {
-    // userId and tenantId are set by tenantMiddleware (JWKS verified)
-    const userId = request.userId;
-    const tenantId = request.tenantId;
+    s.get("/api/auth/me", async (request, reply) => {
+      // userId and tenantId are set by tenantMiddleware (JWKS verified)
+      const userId = request.userId;
+      const tenantId = request.tenantId;
 
-    try {
-      const { data: profile, error: profileError } =
-        await request.supabaseAdmin
-          .from("profiles")
-          .select("*")
-          .eq("id", userId)
-          .single();
+      try {
+        const { data: profile, error: profileError } =
+          await request.supabaseAdmin
+            .from("profiles")
+            .select("*")
+            .eq("id", userId)
+            .single();
 
-      if (profileError || !profile) {
-        return fail(
-          reply,
-          404,
-          "NOT_FOUND",
-          "Profile not found. Please bootstrap first."
-        );
+        if (profileError || !profile) {
+          return fail(
+            reply,
+            404,
+            "NOT_FOUND",
+            "Profile not found. Please bootstrap first."
+          );
+        }
+
+        return ok(reply, {
+          user: {
+            id: userId,
+            email: profile.email,
+          },
+          profile,
+          tenant_id: tenantId,
+          role: request.role || "member",
+        });
+      } catch (err) {
+        console.error("Me error:", err);
+        return fail(reply, 500, "INTERNAL", "Internal server error");
       }
-
-      return ok(reply, {
-        user: {
-          id: userId,
-          email: profile.email,
-        },
-        profile,
-        tenant_id: tenantId,
-        role: request.role || "member",
-      });
-    } catch (err) {
-      console.error("Me error:", err);
-      return fail(reply, 500, "INTERNAL", "Internal server error");
-    }
+    });
   });
 }
