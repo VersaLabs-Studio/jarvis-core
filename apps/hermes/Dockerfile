@@ -50,6 +50,12 @@ COPY --from=builder --chown=hermes:hermes /app/apps/hermes/package.json ./
 COPY --from=deps    --chown=hermes:hermes /app/apps/hermes/node_modules ./node_modules
 COPY --from=builder --chown=hermes:hermes /app/packages ./packages
 
+# Bake the skill docs into the image so /v1/skills is populated on first boot.
+# The hermes-data volume (mounted at /app/data) is preserved so ops can replace
+# a doc at runtime without rebuilding the image — but the docs in the image
+# are the floor, not the volume mount. (Phase E completion handoff §2.)
+COPY --from=builder --chown=hermes:hermes /app/apps/hermes/skills /app/data/skills
+
 USER 1001
 
 EXPOSE 8765
