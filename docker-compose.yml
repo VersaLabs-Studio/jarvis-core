@@ -4,8 +4,9 @@
 
 services:
   # Docker Socket Proxy — least privilege (H1 fix)
+  # Pinned to 0.3.0 (H2 — no :latest at runtime)
   docker-socket-proxy:
-    image: tecnativa/docker-socket-proxy:latest
+    image: tecnativa/docker-socket-proxy:0.3.0
     container_name: jarvis-socket-proxy
     environment:
       - CONTAINERS=1
@@ -48,6 +49,11 @@ services:
       - jarvis-internal
 
   # Hermes — workflow engine
+  # Hardened (Phase E §5.5):
+  #  - user 1001:1001 (non-root, sandbox §3.2)
+  #  - cap_drop ALL + no-new-privileges
+  #  - read_only rootfs with /app/tmp tmpfs
+  #  - NO raw /var/run/docker.sock (must go through socket-proxy)
   hermes:
     build:
       context: .
@@ -55,21 +61,32 @@ services:
     container_name: jarvis-hermes
     environment:
       - NODE_ENV=production
+      - PORT=8765
+      - HOST=0.0.0.0
       - REDIS_URL=redis://redis:6379
       - DOCKER_HOST=tcp://docker-socket-proxy:2375
       - SUPABASE_URL=${SUPABASE_URL}
       - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - JWT_SECRET=${JWT_SECRET}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - SKILLS_DIR=/app/data/skills
+      - HERMES_DAILY_BUDGET_USD=0.50
     volumes:
       - hermes-data:/app/data
+    user: "1001:1001"
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    read_only: true
+    tmpfs:
+      - /app/tmp:size=64m,mode=1777
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8765/health"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD", "wget", "-qO-", "http://localhost:8765/health"]
+      interval: 30s
+      timeout: 10s
       retries: 3
-      start_period: 15s
+      start_period: 30s
     mem_limit: 512m
     depends_on:
       redis:

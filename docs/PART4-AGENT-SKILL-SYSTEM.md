@@ -92,7 +92,7 @@ The 7 OpenCode agents and 5 OpenCode skills are migrated into Hermes skill docum
 
 ## 4.3 Hermes Skill Document Format
 
-Every skill is a markdown file in `services/hermes/skills/`:
+Every skill is a markdown file in `apps/hermes/skills/{foundational,workflow}/` (Phase E §1.1: path resolution — the runtime lives at `apps/hermes/` to match the pnpm workspace `apps/*` glob and the existing `docker-compose.yml` build path):
 
 ```markdown
 ---
@@ -125,12 +125,19 @@ The Fastify API talks to Hermes over HTTP + WS on `hermes:8765` (internal networ
 ### HTTP
 | Method | Endpoint | Body | Response |
 |--------|----------|------|----------|
-| GET | `/health` | — | `{ status: "ok", model: string, uptime_s: number }` |
-| POST | `/v1/chat` | `{ session_id, message, context?, stream: true }` | SSE/WS stream of `{ chunk, done }` |
-| POST | `/v1/skill/run` | `{ skill: string, args?: object }` | `{ run_id }` (progress streams over WS) |
+| GET | `/health` | — | `{ status: "ok", model: string, uptime_s: number, resolved_models: ResolvedModels, sandbox: { code: "ok" \| "noexec" }, boot_check?: "ok" \| "degraded" \| "pending" }` |
+| POST | `/v1/chat/stream` | `{ session_id, message, model?, tools?, history?, role?: "planning"\|"coding"\|"office"\|"fast"\|"audit" }` | SSE stream of `{ type: "chunk"\|"tool_call"\|"done"\|"error", data: { ... } }`, terminated with the literal `data: [DONE]\n\n` |
+| POST | `/v1/skill/run` | `{ skill: string, args?: object }` | `{ run_id: string }` (progress streams over WS as `skill:progress` / `skill:result` / `skill:error`) |
 | GET | `/v1/skills` | — | `{ skills: SkillMeta[] }` |
-| POST | `/v1/mcp/test` | `{ server: string }` | `{ server, ok, tools: string[] }` |
-| GET | `/v1/cron` | — | `{ jobs: CronJob[] }` |
+| POST | `/v1/mcp/test` | `{ server: string }` | `{ server, ok, tools?: string[], error?: string }` |
+| GET | `/v1/cron` | — | `{ jobs: CronJobMeta[] }` |
+
+> **Chat contract (Phase E §1.2 resolution):** the client (already shipped in
+> `apps/api/src/lib/hermes.ts`) calls **`POST /v1/chat/stream`** (not
+> `POST /v1/chat {stream:true}`). The body omits the `stream` parameter —
+> the endpoint *is* the streaming endpoint. The wire chunk shape is the
+> canonical `{ type, data }` consumed by both the HTTP SSE relay and the
+> WS bridge in `apps/api/src/routes/ws/handler.ts`.
 
 ### Streaming bridge
 `POST /api/chat/send` → Hermes `POST /v1/chat {stream:true}` → API relays each chunk to the client's WebSocket as `chat:stream` (Part 2 §2.8). Tool invocations surface as `chat:tool_call`. The API persists the final assembled message + token counts to `chat_messages`.

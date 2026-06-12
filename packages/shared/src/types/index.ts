@@ -13,6 +13,28 @@ export type { WorkflowRun, WorkflowRunRow, WorkflowRunInsert, WorkflowRunUpdate,
 export type { AnalyticsEvent, AnalyticsEventRow, AnalyticsEventInsert, AnalyticsEventUpdate } from './analytics-event'
 export type { SystemLog, SystemLogRow, SystemLogInsert, SystemLogUpdate, SystemLogLevel } from './system-log'
 export type { SystemInfo, SecuritySettings, BackupStatus, AdminUser, AdminOverview, FileNode, EnvVar, ConfigData } from './admin'
+export type {
+  HermesMessage,
+  HermesStreamChunk,
+  HermesStreamChunkType,
+  HermesStreamChunkData,
+  HermesUsageMetrics,
+  SendMessageParams,
+  HermesRole,
+  ResolvedModel,
+  ChainResolution,
+  ResolvedModels,
+  HermesHealth,
+  SkillMeta,
+  SkillsListResponse,
+  SkillRunResponse,
+  SkillRunParams,
+  McpTestParams,
+  McpTestResponse,
+  CronListResponse,
+  CronJobMeta,
+  HermesErrorCode,
+} from './hermes'
 
 export type ID = string
 export type Timestamp = string
