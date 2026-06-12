@@ -73,10 +73,11 @@ export type HermesRole = "planning" | "coding" | "office" | "fast" | "audit";
 
 /**
  * A model's identity in the OpenRouter catalog. Used by the model-resolver
- * (C5 fix) to record which slugs resolved and which were auto-corrected.
+ * (C5 fix + F2 audit fix) to record which slugs resolved, which were
+ * auto-corrected, and which were NOT in the catalog at all.
  */
 export interface ResolvedModel {
-  /** The configured ID (what the user wrote). */
+  /** The configured ID (what the user wrote in chains.ts). */
   configured: string;
   /** The ID actually used after resolution (may equal `configured`). */
   resolved: string;
@@ -84,6 +85,18 @@ export interface ResolvedModel {
   autoCorrected: boolean;
   /** The candidate slugs tried in order before settling on `resolved`. Empty if no correction. */
   candidatesTried: string[];
+  /**
+   * True iff the model was located in the OpenRouter catalog — either the
+   * configured ID itself, a SLUG_CORRECTIONS candidate, or a same-publisher
+   * fallback. False when the catalog fetch succeeded but the model is
+   * genuinely missing (the runtime call will 404), or when the catalog
+   * fetch failed (degraded mode — we accept the configured ID as-is).
+   *
+   * The boot-time fail check in `resolveAllChains` uses this field: a
+   * chain is "entirely missing" only when its resolved primary AND every
+   * fallback all have `foundInCatalog === false`.
+   */
+  foundInCatalog: boolean;
 }
 
 export interface ChainResolution {

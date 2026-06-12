@@ -52,7 +52,7 @@ export async function healthRoute(fastify: FastifyInstance): Promise<void> {
 
 function emptyChain() {
   return {
-    primary: { configured: "", resolved: "", autoCorrected: false, candidatesTried: [] },
+    primary: { configured: "", resolved: "", autoCorrected: false, candidatesTried: [], foundInCatalog: false },
     fallback: [],
     missing: [],
   };

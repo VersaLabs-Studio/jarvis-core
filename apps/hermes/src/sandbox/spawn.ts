@@ -1,12 +1,20 @@
 // =============================================================================
 // Untrusted code-exec sandbox (Phase E §3 + §5.4).
 //
-// `runUntrustedCode` spawns a `node -e <code>` (or python/bash) subprocess
+// `runUntrustedCode` spawns a `node …/snippet.cjs` (or python/bash) subprocess
 // with a SANITIZED env: the parent's process.env is NOT passed; the
 // caller can pass only the keys it explicitly wants. Secrets (API keys,
 // service-role keys, JWT secret, encryption keys, DOCKER_HOST) are
 // never available to the spawned process — they are not in SANITIZED_BASE_ENV
-// and the orchestrator refuses to add them.
+// and the runtime check refuses to add them.
+//
+// For `language: "node"`, the snippet is written to `taskDir/snippet.cjs`
+// inside `runUntrustedCode`'s own per-task tmp dir, immediately before
+// spawn. (F1 fix: the orchestrator used to write to a separate
+// `hermes-orch-*` dir that the spawn never read from — `node` got ENOENT
+// on `snippet.cjs` and the skill crashed silently. Now the write lives
+// next to the spawn's cwd, so the file is guaranteed to exist when `node`
+// starts.)
 //
 // Hard caps:
 //  - Timeout: SUB_AGENT_TIMEOUT_MS (5 min, Part 1 §1.5)
@@ -24,11 +32,21 @@ import { SUB_AGENT_TIMEOUT_MS } from "../config/constants.js";
 
 /**
  * The minimal env passed to every spawned process. Secrets are deliberately
- * NOT here — the parent's process.env is ignored.
+ * NOT here — the parent's process.env is mostly NOT propagated either;
+ * only PATH / HOME / LANG make it through. The caller (skill runner) is
+ * responsible for passing any other env keys it needs via `params.env`,
+ * and the runtime `FORBIDDEN_ENV_KEYS` check below refuses the secret
+ * keys even if the caller accidentally tries.
+ *
+ * PATH is derived from the parent (the Hermes process) so the sub-agent
+ * can find `node` / `python` / `bash` on whichever platform the dev /
+ * container is running on. We fall back to the production container's
+ * known PATH if the parent has none (e.g. running bare in a minimal
+ * image). HOME follows the platform convention.
  */
 const SANITIZED_BASE_ENV: Record<string, string> = {
-  PATH: "/usr/local/bin:/usr/bin:/bin",
-  HOME: "/tmp",
+  PATH: process.env.PATH ?? "/usr/local/bin:/usr/bin:/bin",
+  HOME: process.platform === "win32" ? process.env.USERPROFILE ?? "/tmp" : "/tmp",
   LANG: "C.UTF-8",
   // Explicitly NOT propagated (Phase E §3.2 — the safety contract):
   // - OPENROUTER_API_KEY
@@ -75,6 +93,11 @@ const FORBIDDEN_ENV_KEYS = new Set([
   "REDIS_PASSWORD",
 ]);
 
+/** Single source of truth for the node snippet file path inside a task dir. */
+function nodeSnippetPath(taskDir: string): string {
+  return join(taskDir, "snippet.cjs");
+}
+
 /**
  * Run a snippet of untrusted code in a sanitized subprocess. Returns the
  * stdout/stderr/exitCode/timedOut/oomKilled. Cleans up the per-task tmp dir.
@@ -96,6 +119,16 @@ export async function runUntrustedCode(params: RunUntrustedCodeParams): Promise<
   const timeoutMs = params.timeoutMs ?? SUB_AGENT_TIMEOUT_MS;
 
   try {
+    // F1 fix: write the node snippet into runUntrustedCode's OWN taskDir
+    // (the same cwd `node` will run from) immediately before spawn. This
+    // guarantees the file exists when `node` starts; previously the
+    // orchestrator wrote to a separate `hermes-orch-*` dir that the
+    // spawn never read from, and every `language: "node"` skill silently
+    // ENOENT'd.
+    if (params.language === "node") {
+      await writeFile(nodeSnippetPath(taskDir), params.code, "utf8");
+    }
+
     const { command, args } = buildCommand(params, taskDir);
     log.debug({ language: params.language, taskDir, timeoutMs }, "Sandbox spawning subprocess");
 
@@ -168,11 +201,12 @@ function buildCommand(
 ): { command: string; args: string[] } {
   switch (params.language) {
     case "node": {
-      // Write code to a file so multi-line / quoted code is safe
-      const codePath = join(taskDir, "snippet.cjs");
+      // node runs snippet.cjs from taskDir (the same dir runUntrustedCode
+      // wrote the file into). CommonJS extension so the snippet doesn't
+      // need a "type": "module" package.json. (F1 fix.)
       return {
         command: "node",
-        args: ["--max-old-space-size=256", codePath],
+        args: ["--max-old-space-size=256", nodeSnippetPath(taskDir)],
       };
     }
     case "python": {
@@ -182,14 +216,4 @@ function buildCommand(
       return { command: "bash", args: ["-c", params.code] };
     }
   }
-}
-
-/**
- * Pre-write the node snippet file. Must be called BEFORE runUntrustedCode
- * for language=node. (The function is async; the actual write happens here.)
- */
-export async function writeNodeSnippet(code: string, taskDir: string): Promise<string> {
-  const codePath = join(taskDir, "snippet.cjs");
-  await writeFile(codePath, code, "utf8");
-  return codePath;
 }

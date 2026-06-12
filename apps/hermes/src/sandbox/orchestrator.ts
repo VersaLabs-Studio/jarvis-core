@@ -5,14 +5,21 @@
 // `api-integration`) spawn a sub-agent. The orchestrator enforces:
 //  - MAX_CONCURRENT_SKILL_RUNS across all skills
 //  - Depth limit of 1 (no sub-sub-agents)
-//  - Per-task tmp dir lifecycle
+//  - Per-task tmp dir lifecycle (delegated to runUntrustedCode)
 //
 // Sub-agents are NOT separate processes. They use `runUntrustedCode` to
 // spawn one child process for the actual code; the orchestrator itself
 // stays in the Hermes event loop, so the WS / HTTP server keeps serving.
+//
+// F1 fix: the snippet file is now written by `runUntrustedCode` itself,
+// inside the same per-task tmp dir that `node` will run from. Previously
+// this orchestrator wrote to a separate `hermes-orch-*` dir that the
+// spawn never read from — the node child got ENOENT on `snippet.cjs` and
+// every `language: "node"` skill silently crashed. The pre-write block
+// and its import of `writeNodeSnippet` are gone.
 // =============================================================================
 
-import { runUntrustedCode, writeNodeSnippet, type RunUntrustedCodeResult, type SandboxLanguage } from "./spawn.js";
+import { runUntrustedCode, type RunUntrustedCodeResult, type SandboxLanguage } from "./spawn.js";
 import { log } from "../lib/logger.js";
 import { MAX_CONCURRENT_SKILL_RUNS, SUB_AGENT_TIMEOUT_MS } from "../config/constants.js";
 
@@ -44,14 +51,6 @@ export async function spawnSubAgent(params: {
   _active.add(run);
   log.info({ runId: run.runId, skill: run.skill, active: _active.size }, "Sub-agent starting");
   try {
-    if (params.language === "node") {
-      // For node, write the snippet to a tmp file first
-      const { mkdtemp } = await import("node:fs/promises");
-      const { join } = await import("node:path");
-      const { tmpdir } = await import("node:os");
-      const dir = await mkdtemp(join(tmpdir(), "hermes-orch-"));
-      await writeNodeSnippet(params.code, dir);
-    }
     const result = await runUntrustedCode({
       code: params.code,
       language: params.language,
