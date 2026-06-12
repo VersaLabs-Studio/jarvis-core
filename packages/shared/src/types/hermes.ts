@@ -6,15 +6,35 @@
 // =============================================================================
 
 /**
+ * A single tool invocation emitted by the LLM in an assistant message.
+ * `id` is the OpenRouter tool_call_id (used by the tool message to correlate
+ * its response). `args` is the parsed JSON arguments object.
+ */
+export interface HermesToolCall {
+  id: string;
+  name: string;
+  args: Record<string, unknown>;
+}
+
+/**
  * A single message in a chat history. Mirrors the `chat_messages` table shape
  * but kept as a Hermes-specific type since Hermes does not need the full DB
  * row (no `tenant_id`, no `model`, etc.).
+ *
+ * Phase E §3 (C3 binding): the agentic skill-runner uses the `tool_calls`
+ * (assistant) and `tool_call_id` (tool) fields to round-trip tool invocations
+ * through the LLM. The chat-stream route ignores these (the chat surface
+ * is single-shot LLM → client, not an agentic loop).
  */
 export interface HermesMessage {
   role: "user" | "assistant" | "system" | "tool";
   content: string;
   model?: string;
   tools_used?: string[];
+  /** Assistant messages with tool invocations: one entry per tool_call. */
+  tool_calls?: HermesToolCall[];
+  /** Tool messages: the tool_call_id from the assistant's tool_call this responds to. */
+  tool_call_id?: string;
 }
 
 /**

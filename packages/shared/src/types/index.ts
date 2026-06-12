@@ -15,6 +15,7 @@ export type { SystemLog, SystemLogRow, SystemLogInsert, SystemLogUpdate, SystemL
 export type { SystemInfo, SecuritySettings, BackupStatus, AdminUser, AdminOverview, FileNode, EnvVar, ConfigData } from './admin'
 export type {
   HermesMessage,
+  HermesToolCall,
   HermesStreamChunk,
   HermesStreamChunkType,
   HermesStreamChunkData,

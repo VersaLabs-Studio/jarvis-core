@@ -8,10 +8,12 @@
 //  - 4xx/5xx error mapping to HermesErrorCode
 // =============================================================================
 
-import type { HermesMessage, HermesStreamChunk, HermesUsageMetrics } from "@jarvis/shared";
+import type { HermesMessage, HermesStreamChunk, HermesToolCall, HermesUsageMetrics, HermesRole } from "@jarvis/shared";
 import { log } from "./logger.js";
 import { getEnv } from "../config/env.js";
 import { PER_MODEL_TIMEOUT_MS } from "../config/constants.js";
+import { chainForRole } from "../config/chains.js";
+import { getResolved } from "./model-resolver.js";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
@@ -224,8 +226,170 @@ interface OpenRouterStreamEvent {
 interface OpenRouterNonStreamResponse {
   id?: string;
   model?: string;
-  choices: Array<{ message: { role: string; content: string }; finish_reason: string; index: number }>;
+  choices: Array<{
+    message: {
+      role: string;
+      content: string | null;
+      tool_calls?: Array<{
+        id: string;
+        type: "function";
+        function: { name: string; arguments: string };
+      }>;
+    };
+    finish_reason: string;
+    index: number;
+  }>;
   usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+}
+
+/**
+ * One-shot non-streaming call that returns BOTH text and tool_calls in a
+ * single response. Used by the agentic skill-runner (Phase E §3, §4.2) so
+ * the loop can branch on `toolCalls.length > 0` to execute tools and feed
+ * the results back, vs. broadcasting the text as `skill:result`.
+ *
+ * Implements the same chain-fallback semantics as chat-stream.ts:
+ *   1. Try the role's primary (using the resolved ID; handles C5 auto-correction)
+ *   2. On 4xx (other than VALIDATION) / 404 / TIMEOUT, try each fallback
+ *   3. On VALIDATION (400), do NOT retry — the body is bad
+ *   4. If every model fails, throw CHAIN_EXHAUSTED as UPSTREAM_ERROR (502)
+ *
+ * Returns the first successful response. The caller is responsible for the
+ * agentic loop (max iterations, tool allow-list enforcement, etc.).
+ */
+export interface NonStreamChatWithToolCallsParams {
+  role: HermesRole;
+  messages: HermesMessage[];
+  /** Tool definitions to advertise to the LLM. Names must be unique. */
+  tools: Array<{ type: "function"; function: { name: string; description?: string; parameters: unknown } }>;
+  /** Per-call timeout (ms). Defaults to PER_MODEL_TIMEOUT_MS. */
+  timeoutMs?: number;
+}
+
+export interface NonStreamChatWithToolCallsResult {
+  /** The assistant's text content (may be empty when only tool_calls are returned). */
+  text: string;
+  /** Tool invocations the LLM requested (may be empty). */
+  toolCalls: HermesToolCall[];
+  usage: HermesUsageMetrics;
+  model: string;
+}
+
+export async function nonStreamChatWithToolCalls(
+  params: NonStreamChatWithToolCallsParams,
+): Promise<NonStreamChatWithToolCallsResult> {
+  const env = getEnv();
+  const chainIds = chainForRole(params.role);
+  const resolved = getResolved();
+  // Map each chain ID to its resolved ID (handles slug auto-correction).
+  const resolveChain = (configured: string): string => {
+    const chain = resolved[params.role];
+    if (chain.primary.configured === configured) return chain.primary.resolved;
+    const fb = chain.fallback.find((f) => f.configured === configured);
+    return fb?.resolved ?? configured;
+  };
+
+  const timeoutMs = params.timeoutMs ?? PER_MODEL_TIMEOUT_MS;
+  const startedAt = Date.now();
+  let lastError: unknown = null;
+
+  for (const configuredId of chainIds) {
+    const modelId = resolveChain(configuredId);
+    log.info({ role: params.role, modelId, messageCount: params.messages.length }, "nonStreamChatWithToolCalls: trying model");
+    try {
+      const response = await fetch(OPENROUTER_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://jarvis.versalabs.dev",
+          "X-Title": "JARVIS Hermes",
+        },
+        body: JSON.stringify({
+          model: modelId,
+          messages: params.messages,
+          stream: false,
+          temperature: 0.7,
+          max_tokens: 4096,
+          tools: params.tools,
+        }),
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => "unknown");
+        if (response.status === 400) {
+          // Don't retry with a different model — the request body is bad.
+          throw new OpenRouterError(
+            "VALIDATION",
+            `Model ${modelId} rejected request (400): ${text.slice(0, 200)}`,
+            400,
+            modelId,
+          );
+        }
+        if (response.status === 404) {
+          throw new OpenRouterError(
+            "MODEL_NOT_FOUND",
+            `Model ${modelId} not found (404): ${text.slice(0, 200)}`,
+            404,
+            modelId,
+          );
+        }
+        throw new OpenRouterError(
+          "UPSTREAM_ERROR",
+          `OpenRouter ${response.status} for ${modelId}: ${text.slice(0, 200)}`,
+          response.status,
+          modelId,
+        );
+      }
+
+      const data = (await response.json()) as OpenRouterNonStreamResponse;
+      const message = data.choices[0]?.message;
+      const text = message?.content ?? "";
+      const toolCalls: HermesToolCall[] = (message?.tool_calls ?? []).map((tc) => {
+        let args: Record<string, unknown> = {};
+        try {
+          const parsed = JSON.parse(tc.function.arguments) as unknown;
+          if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+            args = parsed as Record<string, unknown>;
+          } else {
+            args = { value: parsed };
+          }
+        } catch {
+          args = { _raw: tc.function.arguments };
+        }
+        return { id: tc.id, name: tc.function.name, args };
+      });
+      return {
+        text,
+        toolCalls,
+        usage: {
+          tokens_in: data.usage?.prompt_tokens ?? 0,
+          tokens_out: data.usage?.completion_tokens ?? 0,
+          duration_ms: Date.now() - startedAt,
+        },
+        model: data.model ?? modelId,
+      };
+    } catch (err) {
+      lastError = err;
+      if (err instanceof OpenRouterError) {
+        if (err.code === "VALIDATION") {
+          // Don't retry — the body is bad regardless of the model.
+          log.error({ err: err.message, modelId }, "nonStreamChatWithToolCalls: validation error (no retry)");
+          throw err;
+        }
+        log.warn({ err: err.message, code: err.code, modelId }, "nonStreamChatWithToolCalls: model failed, trying next");
+        continue;
+      }
+      log.error({ err: err instanceof Error ? err.message : String(err), modelId }, "nonStreamChatWithToolCalls: unexpected error");
+      continue;
+    }
+  }
+
+  // Chain exhausted
+  const message = lastError instanceof Error ? lastError.message : "All models in chain failed";
+  log.error({ role: params.role, message }, "nonStreamChatWithToolCalls: chain exhausted");
+  throw new OpenRouterError("UPSTREAM_ERROR", `CHAIN_EXHAUSTED: ${message}`, 502, chainIds[chainIds.length - 1] ?? "unknown");
 }
 
 function openRouterEventToChunk(

@@ -6,6 +6,7 @@
 
 export type {
   HermesMessage,
+  HermesToolCall,
   HermesStreamChunk,
   HermesStreamChunkType,
   HermesStreamChunkData,

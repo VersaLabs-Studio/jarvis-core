@@ -21,7 +21,8 @@ import {
   OpenRouterError,
   type OpenRouterChatParams,
 } from "../lib/openrouter.js";
-import { getAlwaysLoadedSystemContext } from "../lib/skill-loader.js";
+import { getAlwaysLoadedSystemContext, getLoadedSkills } from "../lib/skill-loader.js";
+import { matchSkillToMessage } from "../lib/skill-matcher.js";
 import { CHAIN_TOTAL_TIMEOUT_MS } from "../config/constants.js";
 import type { HermesMessage, HermesRole, HermesStreamChunk } from "@jarvis/shared";
 
@@ -54,7 +55,22 @@ export async function chatStreamRoute(fastify: FastifyInstance): Promise<void> {
     // If the caller named an explicit model, use it (admin override — bypasses chain).
     // Otherwise, use the role's chain.
     const explicitModel = body.model;
-    const role: HermesRole = body.role;
+    let role: HermesRole = body.role;
+
+    // Chat-side skill trigger matcher (Phase E §4.3): if the user message
+    // matches a loaded skill's trigger phrases, inject the skill body into
+    // the system prompt and prefer the skill's preferred_model_role.
+    const matchedSkill = matchSkillToMessage(body.message, getLoadedSkills());
+    if (matchedSkill) {
+      log.info(
+        { skill: matchedSkill.frontmatter.name, requestedRole: body.role, skillPreferredRole: matchedSkill.frontmatter.preferred_model_role },
+        "Chat matched a skill trigger; injecting skill body into system prompt",
+      );
+      if (matchedSkill.frontmatter.preferred_model_role) {
+        role = matchedSkill.frontmatter.preferred_model_role;
+      }
+    }
+
     const chainIds = explicitModel ? [explicitModel] : chainForRole(role);
     const resolved = getResolved();
 
@@ -63,6 +79,16 @@ export async function chatStreamRoute(fastify: FastifyInstance): Promise<void> {
     const messages: HermesMessage[] = [];
     if (systemContext) {
       messages.push({ role: "system", content: systemContext });
+    }
+    if (matchedSkill) {
+      messages.push({
+        role: "system",
+        content: [
+          `# Active skill: ${matchedSkill.frontmatter.name}`,
+          "",
+          matchedSkill.body,
+        ].join("\n"),
+      });
     }
     if (body.history) {
       messages.push(...body.history);
