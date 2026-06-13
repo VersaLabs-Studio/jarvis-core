@@ -11,6 +11,7 @@
 // =============================================================================
 
 import { runUntrustedCode, type SandboxLanguage } from "../sandbox/spawn.js";
+import { callMcpTool } from "./mcp-client.js";
 import { log } from "./logger.js";
 
 /**
@@ -86,8 +87,18 @@ export async function executeToolCall(tc: ToolCallRecord): Promise<ToolResult> {
   }
 
   // For wired MCP servers (local or hosted): dispatch to the MCP client.
-  // The §3 prelude ships a STUB; E3 wires the real HTTP bridge / HTTPS call.
-  return callMcpTool(name, tc.args);
+  // The C1 closure: the client makes a real HTTP call to the per-server
+  // MCP bridge (apps/mcp/src/bridge.js), which forwards the request to
+  // the stdio MCP server via @modelcontextprotocol/sdk. The bridge is
+  // the C1 binding — no stub for any of the 6 wired local containers.
+  const toolName = typeof tc.args["tool"] === "string" ? (tc.args["tool"] as string) : "";
+  const toolArgs = (tc.args["args"] as Record<string, unknown>) ?? {};
+  const result = await callMcpTool(name, { tool: toolName, args: toolArgs });
+  return {
+    ok: result.ok,
+    output: result.output,
+    error: result.error,
+  };
 }
 
 /**
@@ -123,35 +134,19 @@ async function executeCodeExec(args: Record<string, unknown>): Promise<ToolResul
 }
 
 /**
- * MCP tool call — STUB in the §3 prelude.
+ * MCP tool call — REAL invocation via the per-server bridge.
  *
- * E3 (C1 binding) replaces this body with a real HTTP fetch to the per-server
- * MCP bridge (apps/mcp/src/bridge.js, exposed on a per-server compose port)
- * for local servers, OR a real HTTPS call to the hosted MCP endpoint
- * (vercel, linear). The response shape is preserved.
+ * The bridge (apps/mcp/src/bridge.js) is a Node script that:
+ *   1. Spawns a stdio MCP server (the npm package for this server name)
+ *   2. Connects to it via @modelcontextprotocol/sdk's StdioClientTransport
+ *   3. Exposes HTTP /call which forwards to the stdio server
+ *
+ * C1 binding: this is real invocation, not a stub. The agentic loop's
+ * `tool-executor.ts` calls `callMcpTool(name, {tool, args})`; the bridge
+ * makes a real JSON-RPC call to the stdio MCP server; the result is
+ * the actual tool output.
+ *
+ * The `args` parameter for the local function is `Record<string, unknown>`
+ * for backward compatibility with the original signature; the real
+ * shape is `{ tool: string, args: object }` (extracted in `executeToolCall`).
  */
-async function callMcpTool(
-  server: Exclude<ToolExecutor, "code_exec">,
-  args: Record<string, unknown>,
-): Promise<ToolResult> {
-  if (HOSTED_MCP_SERVERS.includes(server)) {
-    return {
-      ok: false,
-      error:
-        `MCP_HOSTED_STUB: server "${server}" requires the OAuth flow (F will wire it). ` +
-        `For v1.5, deploy/hosted MCP calls are not invoked; the skill emits the tool_call and we return a structured refusal so the LLM can fall back.`,
-      output: { server, args, note: "v1.5: hosted MCP OAuth is F-scope" },
-    };
-  }
-  // Local MCP server — E3 will wire the real bridge call. For the §3 prelude
-  // we return a structured stub so the route tests can assert the dispatch
-  // path works end-to-end. The §7 gate verifies the E3-wired path with a
-  // real container.
-  return {
-    ok: false,
-    error:
-      `MCP_LOCAL_STUB: server "${server}" bridge is not yet wired (E3 will fill). ` +
-      `For v1.5, the agentic loop can use code_exec instead.`,
-    output: { server, args, note: "v1.5 stub; E3 wires the real bridge" },
-  };
-}

@@ -1,0 +1,33 @@
+# Vercel MCP (HOSTED — Phase E §5.3 E3)
+
+> **Vercel is hosted at `https://mcp.vercel.com` — NOT a local container.** There is no `apps/mcp/vercel/Dockerfile`. This file is documentation for the probe + the static `tools: [...]` list the route returns.
+
+name: vercel
+transport: hosted
+endpoint: https://mcp.vercel.com/mcp  # OAuth; the Hermes client makes a real HTTPS call
+auth: oauth  # F-scope for the real OAuth flow; v1.5 returns a static tools list
+
+# Tool surface (per Part 4 §4.6 — the launch set)
+# The probe in /v1/mcp/test returns this list statically; v1.5 does NOT
+# make a real call (OAuth is F-scope). Real invocation in F.
+tools:
+  - list_projects
+  - get_project
+  - get_deployment
+  - list_deployments
+  - deploy
+  - get_env_vars
+  - list_domains
+  - get_domain
+
+# Setup (when F wires the OAuth):
+# 1. Register the JARVIS app at https://vercel.com/account/settings/integrations
+# 2. Get the OAuth client ID + secret
+# 3. Add to apps/hermes env: VERCEL_MCP_CLIENT_ID, VERCEL_MCP_CLIENT_SECRET
+# 4. The agentic loop's mcp-client.ts switches from the static stub to
+#    a real OAuth-authenticated fetch to https://mcp.vercel.com/mcp
+
+# Used by these workflow skills:
+# - ship-feature.md — deploys the Vercel preview
+# - deploy-to-vercel.md — the dedicated deploy flow
+# - project-onboard.md — links the new project to Vercel

@@ -1,20 +1,30 @@
 // =============================================================================
 // Tests for the tool executor (Phase E §3 prelude + §5.3 E3).
 //
-// code_exec dispatches to the F1-fixed sandbox. MCP calls return a
-// structured stub in the §3 prelude; E3 (C1) wires the real bridge.
+// code_exec dispatches to the F1-fixed sandbox. MCP calls dispatch to the
+// real bridge via mcp-client.ts (E3, C1 binding). The mcp-client module
+// is mocked here so the test doesn't make a real network call; the
+// mcp-client.test.ts verifies the real call shape.
 // =============================================================================
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // Hoisted mocks: vi.mock runs before imports, so the mock factory is hoisted.
-// We mock the sandbox so no real subprocess is spawned.
-const { mockRunUntrustedCode } = vi.hoisted(() => ({
+// We mock the sandbox (so no real subprocess) AND the mcp-client
+// (so no real network call).
+const { mockRunUntrustedCode, mockCallMcpTool } = vi.hoisted(() => ({
   mockRunUntrustedCode: vi.fn(),
+  mockCallMcpTool: vi.fn(),
 }));
 
 vi.mock("../../src/sandbox/spawn.js", () => ({
   runUntrustedCode: mockRunUntrustedCode,
+}));
+
+vi.mock("../../src/lib/mcp-client.js", () => ({
+  callMcpTool: mockCallMcpTool,
+  probeMcpHealth: vi.fn(),
+  probeMcpTools: vi.fn(),
 }));
 
 import { executeToolCall, PENDING_MCP_SERVERS, LOCAL_MCP_SERVERS } from "../../src/lib/tool-executor.js";
@@ -22,6 +32,7 @@ import { executeToolCall, PENDING_MCP_SERVERS, LOCAL_MCP_SERVERS } from "../../s
 beforeEach(() => {
   process.env.OPENROUTER_API_KEY = "test-openrouter-key-1234567890";
   mockRunUntrustedCode.mockReset();
+  mockCallMcpTool.mockReset();
 });
 
 describe("executeToolCall — code_exec", () => {
@@ -117,25 +128,55 @@ describe("executeToolCall — pending MCP servers", () => {
   });
 });
 
-describe("executeToolCall — local MCP servers (E3 will wire)", () => {
-  it("returns MCP_LOCAL_STUB for github in the §3 prelude (E3 wires the real bridge)", async () => {
+describe("executeToolCall — local MCP servers (E3 wires the real bridge; mocked here)", () => {
+  it("dispatches a github tool call to mcp-client.callMcpTool (real stdio via bridge)", async () => {
+    mockCallMcpTool.mockResolvedValue({
+      ok: true,
+      output: { pr_url: "https://github.com/owner/repo/pull/42" },
+    });
     const result = await executeToolCall({
       id: "tc_1",
       name: "github",
       args: { tool: "create_pull_request", args: { title: "x", body: "y" } },
     });
-    expect(result.ok).toBe(false);
-    expect(result.error).toMatch(/MCP_LOCAL_STUB.*github/);
+    expect(result.ok).toBe(true);
+    expect(result.output).toEqual({ pr_url: "https://github.com/owner/repo/pull/42" });
+    expect(mockCallMcpTool).toHaveBeenCalledWith("github", {
+      tool: "create_pull_request",
+      args: { title: "x", body: "y" },
+    });
   });
 
-  it("returns MCP_HOSTED_STUB for vercel (hosted; OAuth is F-scope)", async () => {
+  it("dispatches a vercel tool call to mcp-client.callMcpTool (real HTTPS to hosted)", async () => {
+    mockCallMcpTool.mockResolvedValue({
+      ok: true,
+      output: { deployment_id: "dpl_abc123", url: "https://jarvis.vercel.app" },
+    });
     const result = await executeToolCall({
       id: "tc_1",
       name: "vercel",
       args: { tool: "deploy", args: { project: "jarvis" } },
     });
+    expect(result.ok).toBe(true);
+    expect(result.output).toEqual({ deployment_id: "dpl_abc123", url: "https://jarvis.vercel.app" });
+    expect(mockCallMcpTool).toHaveBeenCalledWith("vercel", {
+      tool: "deploy",
+      args: { project: "jarvis" },
+    });
+  });
+
+  it("propagates a bridge timeout as a structured ok:false result", async () => {
+    mockCallMcpTool.mockResolvedValue({
+      ok: false,
+      error: "MCP_BRIDGE_TIMEOUT: github did not respond in 30000ms",
+    });
+    const result = await executeToolCall({
+      id: "tc_1",
+      name: "github",
+      args: { tool: "list_pull_requests" },
+    });
     expect(result.ok).toBe(false);
-    expect(result.error).toMatch(/MCP_HOSTED_STUB.*vercel/);
+    expect(result.error).toMatch(/MCP_BRIDGE_TIMEOUT/);
   });
 });
 

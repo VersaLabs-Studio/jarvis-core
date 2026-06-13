@@ -1,0 +1,29 @@
+# Browser MCP server (Phase E §5.3 E3 — C4: name corrected)
+
+name: browser
+transport: stdio
+package: "@playwright/mcp"
+endpoint: /call
+port: 8765
+
+# No env vars strictly required; the package auto-installs Chromium on first run.
+# (Optional) PLAYWRIGHT_BROWSERS_PATH overrides the default install location.
+
+# Tool surface (per @playwright/mcp)
+tools:
+  - navigate
+  - screenshot
+  - click
+  - type
+  - snapshot
+  - get_text
+  - get_attribute
+  - evaluate
+  - close
+
+# Notes:
+# - Name corrected (C4): @playwright/mcp, NOT @anthropic/mcp-server-browser
+# - Chromium binary is installed at runtime via the package's postinstall
+#   (~150 MB); the image is < 400 MB total
+# - Supports HTTP mode via --port flag; not used in v1.5 (stdio is enough)
+# - Respects robots.txt by default; the bridge's user-agent identifies as "mcp-bridge"
