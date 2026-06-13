@@ -1,4 +1,4 @@
-import type { Database } from './database.types'
+import type { Database } from './database.types.js'
 
 export type ChatMessageRow = Database['public']['Tables']['chat_messages']['Row']
 export type ChatMessageInsert = Database['public']['Tables']['chat_messages']['Insert']

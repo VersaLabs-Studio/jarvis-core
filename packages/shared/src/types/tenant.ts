@@ -1,4 +1,4 @@
-import type { Database } from './database.types'
+import type { Database } from './database.types.js'
 
 export type TenantRow = Database['public']['Tables']['tenants']['Row']
 export type TenantInsert = Database['public']['Tables']['tenants']['Insert']

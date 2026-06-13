@@ -1,0 +1,12 @@
+export const ERROR_STATUS = {
+    VALIDATION: 422,
+    UNAUTHENTICATED: 401,
+    NO_TENANT: 401,
+    FORBIDDEN: 403,
+    NOT_FOUND: 404,
+    RATE_LIMITED: 429,
+    DB_ERROR: 500,
+    UPSTREAM_ERROR: 502,
+    INTERNAL: 500,
+};
+//# sourceMappingURL=api.js.map

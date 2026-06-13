@@ -1,4 +1,4 @@
-import type { Database } from './database.types'
+import type { Database } from './database.types.js'
 
 export type AnalyticsEventRow = Database['public']['Tables']['analytics_events']['Row']
 export type AnalyticsEventInsert = Database['public']['Tables']['analytics_events']['Insert']

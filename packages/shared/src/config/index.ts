@@ -1,4 +1,4 @@
-export { ENTITY_CONFIG, type EntityKey } from './entities'
+export { ENTITY_CONFIG, type EntityKey } from './entities.js'
 
 export const APP_CONFIG = {
   name: 'JARVIS',

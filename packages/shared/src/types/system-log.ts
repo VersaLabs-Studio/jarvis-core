@@ -1,4 +1,4 @@
-import type { Database } from './database.types'
+import type { Database } from './database.types.js'
 
 export type SystemLogRow = Database['public']['Tables']['system_logs']['Row']
 export type SystemLogInsert = Database['public']['Tables']['system_logs']['Insert']
