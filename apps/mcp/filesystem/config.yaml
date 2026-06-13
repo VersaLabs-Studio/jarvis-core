@@ -1,0 +1,30 @@
+# Filesystem MCP server (Phase E §5.3 E3)
+
+name: filesystem
+transport: stdio
+package: "@modelcontextprotocol/server-filesystem"
+endpoint: /call
+port: 8765
+
+# No env vars required.
+# The container must mount /workspace at the host's repo root:
+#   volumes:
+#     - .:/workspace:rw
+# The server is scoped to /workspace only (no escape above).
+
+# Tool surface (per @modelcontextprotocol/server-filesystem)
+tools:
+  - read_file
+  - write_file
+  - list_directory
+  - create_directory
+  - move_file
+  - search_files
+  - get_file_info
+  - list_allowed_directories
+
+# Notes:
+# - The package auto-scopes to the directories passed at startup; for the
+#   JARVIS compose, we pass /workspace as the only allowed directory
+# - All file operations are relative to /workspace
+# - No network: filesystem is local-only

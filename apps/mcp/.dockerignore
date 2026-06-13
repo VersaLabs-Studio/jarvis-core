@@ -1,0 +1,5 @@
+node_modules
+src/bridge.js.map
+.env
+*.log
+.DS_Store

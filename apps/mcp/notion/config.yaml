@@ -1,0 +1,32 @@
+# Notion MCP server (Phase E §5.3 E3)
+
+name: notion
+transport: stdio
+package: "@notionhq/notion-mcp-server"
+endpoint: /call
+port: 8765
+
+# Auth: Notion integration token
+# Create at: https://www.notion.so/my-integrations
+# Then share the target pages/databases with the integration
+env:
+  - NOTION_TOKEN
+
+# Tool surface (per @notionhq/notion-mcp-server)
+tools:
+  - search
+  - get_page
+  - create_page
+  - update_page
+  - list_databases
+  - query_database
+  - get_database
+  - create_database
+  - append_blocks
+  - update_blocks
+  - delete_blocks
+
+# Notes:
+# - Name verified (C4): @notionhq/notion-mcp-server, NOT @modelcontextprotocol/server-notion
+# - The integration needs read+write access to the target pages
+# - Block-based: every page is a tree of blocks; the API is verbose

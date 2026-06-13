@@ -1,0 +1,42 @@
+# Gmail MCP server (Phase E §5.3 E3 — PENDING per Part 4 §4.6)
+
+name: gmail
+transport: stdio
+package: "@gongrzhe/server-gmail-autoauth-mcp"
+endpoint: /call
+port: 8765
+
+# Auth: Gmail OAuth (auto-flow)
+# Setup:
+#   1. Create OAuth client at https://console.cloud.google.com/apis/credentials
+#   2. Set redirect URI to http://localhost:3000/oauth2callback
+#   3. Add GMAIL_CLIENT_ID + GMAIL_CLIENT_SECRET + GMAIL_REDIRECT_URI to .env
+#   4. First run prompts the OAuth flow in the container's stdout;
+#      the user follows the link, grants, and pastes the code
+env:
+  - GMAIL_CLIENT_ID
+  - GMAIL_CLIENT_SECRET
+  - GMAIL_REDIRECT_URI
+
+# Tool surface (per @gongrzhe/server-gmail-autoauth-mcp)
+tools:
+  - list_messages
+  - get_message
+  - send_message
+  - create_draft
+  - list_labels
+  - add_label
+  - remove_label
+  - mark_as_read
+  - mark_as_unread
+  - trash_message
+  - delete_message
+
+# Notes:
+# - "Pending — verify before production" per Part 4 §4.6: this is a
+#   community server; trust review before wiring to real client email
+# - Auto-auth flow requires interactive console access; in headless
+#   compose, the user must pre-grant the token
+# - The probe in /v1/mcp/test returns ok:false for this server with
+#   error "PENDING — verify before production"; the agentic loop can
+#   still invoke it (the executor returns the pending error)

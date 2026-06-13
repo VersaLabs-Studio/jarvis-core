@@ -1,0 +1,31 @@
+# GitHub MCP server (Phase E §5.3 E3)
+# Pinned at build time via `npm view @modelcontextprotocol/server-github version`
+
+name: github
+transport: stdio
+package: "@modelcontextprotocol/server-github"
+endpoint: /call
+port: 8765
+
+# Auth: GitHub Personal Access Token with `repo` + `read:org` + `workflow` scopes.
+# Generate at: https://github.com/settings/tokens
+env:
+  - GITHUB_TOKEN
+
+# Tool surface (per @modelcontextprotocol/server-github)
+# Verifies via POST /v1/mcp/test {server: "github"} on the bridge
+tools:
+  - create_or_update_file
+  - create_pull_request
+  - create_issue
+  - list_*
+  - get_file_contents
+  - search_code
+  - search_issues
+  - search_pull_requests
+
+# Notes:
+# - The npm package's name is @modelcontextprotocol/server-github (C4)
+#   — NOT @anthropic/mcp-server-github (deprecated) and NOT @vercel/mcp-github (Vercel-only)
+# - The package auto-detects the token from env; no flag needed
+# - Rate limits: 5000 req/hour for authenticated users
