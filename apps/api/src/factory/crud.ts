@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import type { EntityConfig } from "@jarvis/shared";
 import { ok, paginated, fail, validationError } from "../lib/response.js";
-import "../types/fastify.ts";
+import "../types/fastify.js";
 
 interface PaginationParams {
   page: number;

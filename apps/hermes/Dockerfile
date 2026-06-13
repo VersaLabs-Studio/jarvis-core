@@ -2,6 +2,11 @@
 # Hermes Agent — Multi-stage build (Phase E §5.5)
 # Non-root (UID 1001), cap-drop ALL, no-new-privileges. Skill docs and the
 # /app/data volume are mounted at runtime; the image is hermes-runtime only.
+#
+# F0 closure: real tsc→dist build for @jarvis/shared (with .js extensions +
+# NodeNext + exports conditions). The shared-builder stage emits
+# packages/shared/dist/; the runner stage COPYs the dist (not the source)
+# so node dist/server.js can resolve `import @jarvis/shared` at runtime.
 # =============================================================================
 
 FROM node:20-alpine AS base
@@ -18,12 +23,21 @@ COPY apps/hermes/package.json ./apps/hermes/
 RUN pnpm install --frozen-lockfile
 
 # ----------------------------------------------------------------------------
-# builder — TypeScript build of @jarvis/hermes
+# shared-builder — emits packages/shared/dist/ (F0 closure)
+# ----------------------------------------------------------------------------
+FROM base AS shared-builder
+COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
+COPY packages/shared/ ./packages/shared/
+RUN pnpm --filter @jarvis/shared build
+
+# ----------------------------------------------------------------------------
+# builder — TypeScript build of @jarvis/hermes (NodeNext + .js extensions)
 # ----------------------------------------------------------------------------
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 COPY --from=deps /app/apps/hermes/node_modules ./apps/hermes/node_modules
+COPY --from=shared-builder /app/packages/shared/dist ./packages/shared/dist
 COPY tsconfig.json ./
 COPY packages ./packages
 COPY apps/hermes ./apps/hermes
@@ -44,7 +58,10 @@ ENV NODE_ENV=production
 ENV PORT=8765
 ENV HOST=0.0.0.0
 
-# Copy built artifact + node_modules + workspace package.json
+# Copy built artifact + node_modules + workspace package.json.
+# F0 closure: the shared dist goes into the WORKSPACE (not the symlink)
+# so the api/hermes runtime sees packages/shared/dist/index.js (Node ESM
+# compatible) — NOT packages/shared/src/index.ts (which Node can't load).
 COPY --from=builder --chown=hermes:hermes /app/apps/hermes/dist ./dist
 COPY --from=builder --chown=hermes:hermes /app/apps/hermes/package.json ./
 COPY --from=deps    --chown=hermes:hermes /app/apps/hermes/node_modules ./node_modules
