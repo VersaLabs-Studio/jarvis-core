@@ -30,6 +30,7 @@ import { skillsListRoute } from "./routes/skills-list.js";
 import { mcpTestRoute } from "./routes/mcp-test.js";
 import { cronListRoute } from "./routes/cron-list.js";
 import { wsRoute } from "./routes/ws.js";
+import { CronEngine } from "./cron/engine.js";
 
 async function main(): Promise<void> {
   // 1. env
@@ -103,6 +104,13 @@ async function main(): Promise<void> {
   // 9. boot-check (fire-and-forget; does not block)
   void runBootCheck();
 
+  // 10. E4 cron engine — lazy-init; chat still works if REDIS_URL is unset
+  const cronEngine = new CronEngine();
+  await cronEngine.init();
+  if (cronEngine.isDisabled()) {
+    logger.warn({ reason: cronEngine.getDisabledReason() }, "Cron engine disabled");
+  }
+
   // Graceful shutdown
   const shutdown = async (signal: string): Promise<void> => {
     logger.info({ signal }, "Shutting down Hermes");
@@ -111,6 +119,9 @@ async function main(): Promise<void> {
     } catch (err) {
       logger.error({ err: err instanceof Error ? err.message : String(err) }, "fastify.close() failed");
     }
+    await cronEngine.shutdown().catch((err) => {
+      logger.error({ err: err instanceof Error ? err.message : String(err) }, "cron engine shutdown failed");
+    });
     await shutdownBudget();
     process.exit(0);
   };

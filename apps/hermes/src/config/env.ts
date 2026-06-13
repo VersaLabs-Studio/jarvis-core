@@ -32,6 +32,11 @@ const envSchema = z.object({
 
   // Per-model call timeout (60s default; Part 1 §1.5)
   MODEL_CALL_TIMEOUT_MS: z.coerce.number().int().min(1000).default(60_000),
+
+  // E4 cron engine — API endpoint for workflow_runs writes
+  // (HTTP loopback; the API exposes the factory CRUD).
+  API_URL: z.string().url().optional(),
+  HERMES_SERVICE_TOKEN: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
