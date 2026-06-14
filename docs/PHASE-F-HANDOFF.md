@@ -47,6 +47,12 @@ The API image build emits nothing because the root tsconfig sets `noEmit:true` a
 
 ## 2. F1 — Deploy infrastructure (mesh builds; Kidus runs on the VPS)
 
+> 🚨 **F1 REBUILD (2026-06-14):** the implementation details in the rest of this §2 (the "create `services/nginx/`" step, the ufw allow-list, the `web` service, the docker `nginx` container, etc.) reflect the **original dedicated-box plan** in §5.2. They are **superseded by the co-tenant + Vercel rebuild** below. The audit blocks above (🚨 CO-TENANCY CONSTRAINT and 🌐 WEB-ON-VERCEL SPLIT) are the LOCKED constraints; everything else here is historical context.
+>
+> **Implementation:** see `docs/PHASE-F-F1-REBUILD-NOTES.md` (architectural decision log) and `deploy/README.md` (per-script runbook). The deployment files live in `deploy/` (idempotent bash + nginx vhost snippets, dropped into the host nginx via `deploy/certbot-issue.sh`).
+>
+> **F1 acceptance (revised by the rebuild):** `docker compose config` validates; `deploy/boot-smoke.sh` proves both node-booted services (`api` + `hermes`) boot to "listening" AND respond on their health endpoints (hermes is internal-only — probed via `docker compose exec`); `deploy/certbot-issue.sh` proves TLS issuance end-to-end (`curl -fsSI https://api.jarvis.versalabs-studio.com/health` → 200 with HSTS); `deploy/setup-swap.sh` is idempotent.
+
 > 🚨 **CO-TENANCY CONSTRAINT (audited 2026-06-13 — supersedes the Part 5 §5.2 dedicated-box compose).** The target VPS (`91.99.119.239`, host `pana`) is **NOT dedicated** — it runs a live bare-metal ERPNext/Frappe `bench`. Audited footprint: **host nginx 1.18.0 owns port 80** (Frappe), MariaDB `:3306`, Frappe Redis `:11000`/`:13000`, gunicorn `:8000`, socketio `:9000`; **Docker not installed; `:443` and `:6379` are free; `ufw` inactive.** Therefore F1's nginx/compose MUST change:
 > 1. **JARVIS does NOT bind host `80`/`443`.** Drop the published `nginx` service from JARVIS's compose (or bind it to `127.0.0.1` only). JARVIS `web`/`api`/`hermes` publish on **loopback** (`127.0.0.1:3000` / `:3001` / `:8765`).
 > 2. **Front door = the EXISTING host nginx.** Deliver a vhost snippet (`server_name jarvis.versalabs.dev`) that reverse-proxies to the loopback ports (incl. the `/ws` upgrade), to be `include`d into the host nginx — **find and never clobber the Frappe bench config first** (`sites-enabled` is empty; config lives in `conf.d`/bench-generated).

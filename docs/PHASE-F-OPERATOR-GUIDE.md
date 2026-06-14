@@ -2,17 +2,20 @@
 
 > This is **your** step-by-step guide, separate from `PHASE-F-HANDOFF.md` (which is for the OpenCode mesh). That one says *what to build*; this one says *what you do with your hands* to get v1.5 onto the VPS. Read it top to bottom once before you start.
 >
-> Written by the Opus brain, 2026-06-13. Reflects the current architecture (hosted Supabase, Hermes sandbox, socket-proxy) — not the stale `.env.example`.
+> Written by the Opus brain, updated 2026-06-14. Reflects the F1 rebuild (co-tenant + Vercel web split) — the dedicated-box plan in §5.2 of the handoff is superseded. Concrete domains: `api.jarvis.versalabs-studio.com` (API/Hermes, this VPS) and `jarvis.versalabs-studio.com` (web, Vercel).
 
 ---
 
-## ⛔ Two ground rules — internalize these before anything else
+## ⛔ Three ground rules — internalize these before anything else
 
 **RULE 1 — Do NOT bring up the application stack until F0 is merged to `develop`.**
 The current build crashes on boot (`@jarvis/shared` ships raw TypeScript; `node dist/server.js` cannot load it — both `api` and `hermes` die immediately). Running `docker compose up -d` on the full stack today gives you a restart-looping mess and tells you nothing. **Everything in Stage 0 below is safe to do now** because it's OS/DNS/secret prep that never starts the broken app. The app stack waits for Stage 1.
 
 **RULE 2 — Do NOT enable `ufw` on this box (it's co-tenant with ERPNext).**
 The audit (below) shows `ufw` is currently **inactive** and Frappe/ERPNext is serving on several ports (80, 8080, 9000). Turning `ufw` on with a JARVIS-style `22/80/443`-only allow-list would likely **cut off ERPNext's realtime/secondary ports**. Leave `ufw` as-is; rely on the Hetzner Cloud Firewall instead (verify it allows 22/80/443). The original Part 5 `setup-vps.sh` `ufw` block assumes a *dedicated* box — **skip it here.**
+
+**RULE 3 — JARVIS's `web` deploys to Vercel, NOT this VPS.**
+The VPS hosts **api + hermes + supporting infra** (redis, socket-proxy, mcp-*). The web (Next.js) is at `https://jarvis.versalabs-studio.com` on Vercel (wildcard ALIAS). The `web` service has been removed from the VPS `docker-compose.yml` — running it on the VPS would just be a slower, more expensive place to run Next.js.
 
 ---
 
@@ -32,7 +35,7 @@ I drove a read-only audit of `pana` (`91.99.119.239`). Reality:
 **This box is shared — the runbook's "dedicated box" assumptions change. The classification:**
 
 **✅ DO NOW (safe, no impact on Frappe):**
-- **0.2 DNS** — point `jarvis.versalabs.dev` → `91.99.119.239`.
+- **0.2 DNS** — point `api.jarvis.versalabs-studio.com` → `91.99.119.239` (A-record). The web (`*.versalabs-studio.com`) is already on Vercel.
 - **0.5 secrets / 0.6 Supabase check / 0.7 Telegram bot** — all off-box prep.
 - **Docker install** (`get.docker.com`) — clean, Frappe doesn't use it.
 - **Add swap** (recommended before bring-up — see below; 0 B swap + ~4 GB JARVIS need on top of Frappe is too tight without a cushion).
@@ -41,13 +44,16 @@ I drove a read-only audit of `pana` (`91.99.119.239`). Reality:
 - **0.3 firewall (`ufw enable`)** — SKIP (RULE 2 above).
 - **Any `docker compose up` of the app stack** — wait for F0-merged + the co-tenant compose (below).
 
-**🔧 CHANGED from the original plan (co-tenancy):**
-1. **JARVIS must NOT bind host `80`/`443`.** The existing host nginx stays the single front door. JARVIS containers publish on **`127.0.0.1` only** (web `:3000`, api `:3001`, hermes `:8765` — all free), and we add a **`server_name jarvis.versalabs.dev` vhost to the host nginx** that reverse-proxies to those loopback ports. JARVIS's *own* nginx container from the compose is dropped (or bound to loopback behind the host one).
-2. **TLS goes on the host nginx**, not a JARVIS nginx — certbot issues for `jarvis.versalabs.dev` on port 443 (free). Bonus: this finally gives the box TLS (ERPNext is HTTP-only today; we can extend the cert to Frappe's domain too if you want — your call, out of scope otherwise).
-3. **JARVIS Redis stays internal** to its docker network — no host `6379` publish (and `6379` is free anyway, so no conflict either way).
-4. **Add a swapfile** (2–4 GB) for memory headroom before running both stacks together.
+**🔧 CHANGED from the original plan (co-tenancy + Vercel split):**
+1. **JARVIS does NOT bind host `80`/`443`.** The existing host nginx stays the single front door. JARVIS `api` publishes on **`127.0.0.1:3001` only**; `hermes` + `redis` are **internal-only** (no host port). The host nginx gets a new vhost (`server_name api.jarvis.versalabs-studio.com`) that reverse-proxies to `127.0.0.1:3001` (api) + `/ws` upgrade.
+2. **TLS goes on the host nginx**, not a JARVIS nginx container — certbot issues for `api.jarvis.versalabs-studio.com` on port 443 (free). The certbot script (`deploy/certbot-issue.sh`) handles vhost deployment.
+3. **JARVIS's nginx container is dropped** (was the dedicated-box pattern). The host nginx does all the public-facing.
+4. **JARVIS Redis stays internal** to its docker network — no host `6379` publish (and `6379` is free anyway, so no conflict either way).
+5. **JARVIS's `web` service is dropped** — Vercel hosts the web (`https://jarvis.versalabs-studio.com`); see RULE 3.
+6. **Add a swapfile** (2–4 GB) for memory headroom before running both stacks together.
+7. **CORS** on the Fastify API must allow the Vercel web origin (`https://jarvis.versalabs-studio.com`). The `CORS_ORIGINS` env in `/opt/jarvis/.env` handles this; the API fail-loud at boot if it's unset in production.
 
-> The mesh built F1 assuming a dedicated box. I've patched `PHASE-F-HANDOFF.md` §2 with this co-tenancy constraint so the F1 nginx/compose is built as a *loopback + host-nginx-vhost* design, not a port-80 grab. Don't run F1's compose until that re-build lands.
+> The mesh built F1 assuming a dedicated box. It has been rebuilt for the co-tenant + Vercel split. See `docs/PHASE-F-F1-REBUILD-NOTES.md` for the architectural decision log; `deploy/README.md` for the per-script runbook.
 
 ---
 
@@ -59,11 +65,11 @@ STAGE 0  (NOW — runs in parallel with the mesh building F0)
         │
         ▼   (wait here until: mesh reports F0 boot-smoke green AND phase/f-deploy is ready)
 STAGE 1  (AFTER F0)
-  Pull · finalize .env · build images · docker compose up -d · health checks
+  Pull · finalize .env · build images · docker compose up -d · boot-smoke · certbot issue
         │
         ▼
-STAGE 2  (AFTER the stack is healthy on HTTP)
-  TLS (certbot) · the §5.9 live go-live gate · backup+restore drill · load test · flip to MVP
+STAGE 2  (AFTER the stack is healthy on TLS)
+  §5.9 live go-live gate · backup+restore drill · load test · flip to MVP
 ```
 
 You can complete **all of Stage 0 today.** Stages 1–2 need F0 done first.
@@ -94,44 +100,39 @@ When you accept the new key, **eyeball the fingerprint** against what your VPS p
 
 ## 0.2 — DNS (do this first; it has the longest lag)
 
-TLS will not issue for a bare IP — Let's Encrypt needs a name. Point a domain at the **confirmed** VPS IP:
-- Create an `A` record: `jarvis.versalabs.dev` → `<confirmed VPS IP>` (TTL 300 while setting up).
-- Optionally a second `A` record for a bare/`www` as you prefer.
-- Verify propagation before Stage 2: `nslookup jarvis.versalabs.dev` should return your IP.
+TLS will not issue for a bare IP — Let's Encrypt needs a name. Point the JARVIS API domain at the **confirmed** VPS IP:
+
+| Record | Name | Type | Value |
+|--------|------|------|-------|
+| **A** | `api.jarvis.versalabs-studio.com` | A | `<confirmed VPS IP>` (TTL 300 while setting up) |
+| (already live) `*.versalabs-studio.com` | (wildcard) | ALIAS / CNAME | Vercel |
+
+Verify propagation before Stage 1: `nslookup api.jarvis.versalabs-studio.com` should return the VPS IP.
+
+The web is on Vercel — set `NEXT_PUBLIC_API_URL=https://api.jarvis.versalabs-studio.com` in the Vercel project's env.
 
 DNS can take minutes to hours to propagate — that's why it's step one.
 
 ## 0.3 — VPS OS hardening (safe now; no app involved)
 
-The mesh will formalize this as `scripts/setup-vps.sh` (it doesn't exist yet — only `deploy.sh`/`health-check.sh` do). You can run the equivalent now. SSH in as a user with sudo, then:
+The mesh will formalize this as `deploy/setup-vps.sh` (it's in the F1 commit). You can run it now. SSH in as a user with sudo, then:
 
 ```bash
-# 1. System updates
-sudo apt update && sudo apt upgrade -y
-
-# 2. Docker Engine + Compose v2 (official convenience script)
-curl -fsSL https://get.docker.com | sudo sh
-sudo systemctl enable --now docker
-sudo usermod -aG docker "$USER"   # log out/in after this so 'docker' works without sudo
-
-# 3. Base tooling
-sudo apt install -y git curl wget htop jq ufw fail2ban unattended-upgrades
-
-# 4. FIREWALL — allow SSH BEFORE enabling (RULE 2)
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-sudo ufw allow 22/tcp
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-sudo ufw --force enable
-sudo ufw status verbose          # confirm 22/80/443 allowed, default deny incoming
-
-# 5. SSH brute-force protection
-sudo systemctl enable --now fail2ban
-
-# 6. Automatic security updates
-sudo dpkg-reconfigure -f noninteractive unattended-upgrades
+sudo /opt/jarvis/deploy/setup-vps.sh
 ```
+
+What it does (in order; idempotent):
+1. `apt update` + base tooling (`git`, `curl`, `wget`, `htop`, `jq`, `fail2ban`, `unattended-upgrades`, `nginx`, `certbot`, `python3-certbot-nginx`)
+2. Install Docker Engine + Compose v2 (official `get.docker.com` script)
+3. Configure `fail2ban` (SSH brute-force protection)
+4. Enable `unattended-upgrades`
+5. Create `/opt/jarvis` (owned by your user)
+6. Add an `include /etc/nginx/conf.d/jarvis-http.conf` to the host nginx's http{} block (so the certbot script's rate-limit zones load)
+
+**What it does NOT do** (intentionally — see RULE 2):
+- It does NOT enable `ufw` (would sever Frappe's `:8080`/`:9000`).
+- It does NOT install the JARVIS app stack.
+- It does NOT issue TLS certs.
 
 > **If your VPS provider also has a cloud firewall** (Hetzner Cloud Firewall, etc.), it sits in front of `ufw` — make sure 22/80/443 are open there too, or the box is unreachable regardless of `ufw`.
 
@@ -141,13 +142,21 @@ sudo dpkg-reconfigure -f noninteractive unattended-upgrades
 sudo mkdir -p /opt/jarvis && sudo chown "$USER":"$USER" /opt/jarvis
 cd /opt/jarvis
 git clone git@github.com:kidusabdula/jarvis-core.git .
-git checkout develop          # you'll pull the F0 merge here in Stage 1
+git checkout phase/f-deploy          # you'll pull F0 + F1 here in Stage 1
 ```
 This needs the VPS's SSH deploy key registered on GitHub (or use an HTTPS clone with a PAT). Cloning now is harmless — you're just staging the code; you won't `compose up` until Stage 1.
 
 ## 0.5 — Gather production secrets (the authoritative list)
 
-⚠️ The committed `.env.example` is **stale** (Phase-A, assumes self-hosted Supabase). Ignore it. Gather **these** instead — this is the real set the current architecture needs. Create `/opt/jarvis/.env` with them (chmod 600; never commit).
+⚠️ The committed `.env.example` at the repo root was stale (Phase-A, OpenClaw self-hosted Supabase); the F1 commit replaced it with the canonical prod env shape. **Copy it and fill it in:**
+
+```bash
+cp /opt/jarvis/.env.example /opt/jarvis/.env
+chmod 600 /opt/jarvis/.env
+# edit /opt/jarvis/.env
+```
+
+What the F1-rebuild `.env` requires (every var here is required in production — `CORS_ORIGINS` fail-loud at api boot if unset):
 
 **Supabase (hosted — project `rofvgnvhmwsgrqewcbci`):**
 - `SUPABASE_URL=https://rofvgnvhmwsgrqewcbci.supabase.co`
@@ -157,33 +166,27 @@ This needs the VPS's SSH deploy key registered on GitHub (or use an HTTPS clone 
 - `DATABASE_URL=` — the Postgres connection string (Settings → Database) — used by `backup.sh` `pg_dump`
 
 **Auth / crypto (generate strong, ≥32 chars):**
-- `JWT_SECRET=` — must match what Supabase signs with (or your API's verification config)
+- `JWT_SECRET=` — optional; only if using legacy HS256 (the default is the JWKS path)
 - `MASTER_ENCRYPTION_KEY=` — AES-256-GCM key for sealing integration secrets (Part 2 §2.6). Generate: `openssl rand -base64 32`
 
 **LLM:**
 - `OPENROUTER_API_KEY=` — openrouter.ai dashboard
 
-**Redis (the cron/BullMQ + queue backend):**
-- `REDIS_URL=redis://:<password>@redis:6379`
+**Redis (the cron/BullMQ + queue backend — internal to the docker network):**
 - `REDIS_PASSWORD=` — `openssl rand -base64 24`
 
-**Hermes service auth (loopback factory writes):**
+**Hermes service auth (loopback factory writes — E4 cron):**
 - `HERMES_SERVICE_TOKEN=` — shared secret the cron uses on `POST /api/cms/workflow_runs`. Generate: `openssl rand -hex 32`
 
-**MCP credentials (live integrations — F4):**
-- `GITHUB_TOKEN=` — fine-grained or classic PAT, scopes: `repo`, `workflow`, `read:org`
-- `NOTION_API_KEY=` — Notion integration token (share the relevant pages with the integration)
-- `VERCEL_TOKEN=` — or the OAuth flow when the mesh wires it
-- Gmail: OAuth client creds (F4 — keep flagged until you trust the community server)
-- Linear: OAuth (F4)
+**CORS (REQUIRED in production; the API fail-loud at boot if unset):**
+- `CORS_ORIGINS=https://jarvis.versalabs-studio.com` — the Vercel web origin. Comma-separate for preview deployments.
 
-**Telegram (notifications):**
+**Public base URL of the API:**
+- `PUBLIC_API_URL=https://api.jarvis.versalabs-studio.com` — used for OAuth redirects, webhook callbacks, mobile `EXPO_PUBLIC_API_URL`.
+
+**Telegram (notifications — F4):**
 - `TELEGRAM_BOT_TOKEN=` — from @BotFather (Stage 0.7)
 - `TELEGRAM_ALLOW_FROM=` — your numeric Telegram user/chat id (allowlist)
-
-**App / runtime:**
-- `NODE_ENV=production`
-- `SITE_URL=https://jarvis.versalabs.dev` (your domain — used for auth redirects)
 
 **Observability (F2 — optional but recommended):**
 - `SENTRY_DSN=` or `GLITCHTIP_DSN=`
@@ -194,8 +197,10 @@ This needs the VPS's SSH deploy key registered on GitHub (or use an HTTPS clone 
 
 The Phase-D live gate found these missing once before — confirm they're true now (Supabase dashboard / SQL editor):
 - [ ] All `supabase/migrations/*.sql` applied to the hosted project (`supabase db push` or via dashboard).
+  - **Note: `0004_role_grants.sql` is the service_role DML fix; it is already applied+verified on the hosted project (2026-06-13) — do NOT re-run.**
 - [ ] **Custom access token hook enabled** — injects `tenant_id` into the JWT. Without it, every authenticated API call 401s with "no tenant."
-- [ ] `service_role` has grants on `tenants` / `profiles`; `bootstrap_user` execute granted to `service_role`.
+- [ ] `service_role` has grants on all public tables (the 0004 migration).
+- [ ] `bootstrap_user` execute granted to `service_role`.
 - [ ] Generated types committed and matching migrations (`type-drift:check` is green — it is, as of the E gate).
 
 ## 0.7 — Create the Telegram bot (5 minutes, unblocks a gate line)
@@ -203,11 +208,19 @@ The Phase-D live gate found these missing once before — confirm they're true n
 1. Open Telegram → @BotFather → `/newbot` → name it → copy the **bot token** into `TELEGRAM_BOT_TOKEN`.
 2. Message your new bot once, then get your numeric id: open `https://api.telegram.org/bot<TOKEN>/getUpdates` and read `message.from.id` → put it in `TELEGRAM_ALLOW_FROM`.
 
+## 0.8 — Vercel web (in parallel with Stage 0)
+
+Vercel hosts the web at `https://jarvis.versalabs-studio.com`. This is independent of the VPS but needs to be done before the live gate:
+1. Create (or import) the JARVIS web project in Vercel, attached to the `versalabs-studio.com` domain (wildcard).
+2. Set `NEXT_PUBLIC_API_URL=https://api.jarvis.versalabs-studio.com` in the Vercel project's env.
+3. (Optional) Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` to the hosted Supabase values.
+4. Push a deploy (or wait for the F1 commit's deploy hook to push).
+
 ---
 
 # STAGE 1 — After the mesh reports F0 boot-smoke green
 
-> Gate to enter Stage 1: mesh confirms `node dist/server.js` boots clean for **both** api and hermes in a container, F0 is merged to `develop`, and `phase/f-deploy` carries the deploy infra (F1).
+> Gate to enter Stage 1: mesh confirms `node dist/server.js` boots clean for **both** api and hermes in a container, F0 is merged to `develop`, and `phase/f-deploy` carries the F1 deploy infra.
 
 ## 1.1 — Pull the deploy-ready code
 ```bash
@@ -222,49 +235,75 @@ git pull
 - `chmod 600 .env`
 - Sanity-check: `grep -c '=' .env` and skim for blanks.
 
-## 1.3 — Create volumes + build + bring up
+## 1.3 — Add swap (cushion for co-tenant)
 ```bash
+sudo /opt/jarvis/deploy/setup-swap.sh         # 2 GB default
+# OR
+sudo /opt/jarvis/deploy/setup-swap.sh 4       # 4 GB cushion
+```
+Idempotent. Re-runs are no-ops.
+
+## 1.4 — Create volumes + build + bring up + boot-smoke
+```bash
+cd /opt/jarvis
 docker volume create hermes-data
-docker volume create redis-data
-docker compose build            # builds api/web/hermes/mcp images (now boots clean post-F0)
+docker compose build                           # builds api + hermes (no web; no nginx)
 docker compose up -d
-docker compose ps               # ALL services should reach 'healthy' (not 'restarting')
+sudo /opt/jarvis/deploy/boot-smoke.sh         # proves both node-booted services are live
 ```
 
-## 1.4 — Health checks (must all pass before Stage 2)
+The boot-smoke target:
+- `docker compose config` validates
+- All services reach `healthy` (no `restarting` / `unhealthy`)
+- **api (Node):** `API listening on` in logs + `GET /health` → 200 + `GET /api/cms/workflows?page=1` → 401 with the real `UNAUTHENTICATED` envelope
+- **hermes (Node):** `Hermes listening on` in logs + `GET /health` → 200 (in-container; hermes is internal-only)
+- **redis (bonus):** `PING` → `PONG`
+- **docker-socket-proxy (bonus):** `GET /_ping` → 200
+
+If `api` or `hermes` is restart-looping here, **F0 is not actually fixed** — stop, capture `docker compose logs`, and route it back to the mesh. Do not proceed to TLS on a broken stack.
+
+Quick sanity (manual):
 ```bash
 docker compose ps                                  # no service in 'restarting'/'unhealthy'
 docker compose logs --tail=50 api hermes           # no boot crash, no MODULE_NOT_FOUND
-curl -fsS http://localhost:8765/health             # Hermes → 200 + model + uptime
-curl -fsS http://localhost:3001/api/admin/health   # API rollup → ok (hermes/redis/db/mcp)
-docker compose exec redis redis-cli -a "$REDIS_PASSWORD" ping   # → PONG
+curl -fsS http://127.0.0.1:3001/health             # API → 200 (loopback)
+docker compose exec hermes wget -qO- http://localhost:8765/health  # Hermes → 200 (internal)
+docker compose exec redis redis-cli -a "$REDIS_PASSWORD" ping     # → PONG
 ```
-If `api` or `hermes` is restart-looping here, **F0 is not actually fixed** — stop, capture `docker compose logs`, and route it back to the mesh. Do not proceed to TLS on a broken stack.
+
+## 1.5 — Issue TLS (requires DNS from 0.2 resolving to this box)
+```bash
+sudo /opt/jarvis/deploy/certbot-issue.sh
+```
+
+The script is idempotent:
+1. Drops `nginx-jarvis-http.conf` (rate-limit zones + upstream) into `/etc/nginx/conf.d/jarvis-http.conf`
+2. Drops `nginx-jarvis-server.conf` (80-vhost with ACME + redirect) into `/etc/nginx/conf.d/jarvis-80.conf`
+3. `nginx -t && systemctl reload nginx`
+4. `certbot certonly --webroot` for `api.jarvis.versalabs-studio.com` (skipped if cert already exists)
+5. Drops `nginx-jarvis-https.conf` (443-vhost with TLS + reverse proxy + WS) into `/etc/nginx/conf.d/jarvis-https.conf`
+6. `nginx -t && systemctl reload nginx`
+7. Verifies with `curl -fsSI https://api.jarvis.versalabs-studio.com/health`
+
+Then verify (must all pass before Stage 2):
+```bash
+curl -fsSI https://api.jarvis.versalabs-studio.com/health             # 200 over TLS (HSTS header present)
+curl -fsSI http://api.jarvis.versalabs-studio.com/health              # 301 → https
+curl -fsS  https://api.jarvis.versalabs-studio.com/api/cms/workflows?page=1  # 401 with the real auth envelope (proves api through nginx)
+```
+
+Confirm the response carries `Strict-Transport-Security` (HSTS).
 
 ---
 
-# STAGE 2 — After the stack is healthy on HTTP
+# STAGE 2 — After the stack is healthy on TLS
 
-## 2.1 — TLS (needs DNS from 0.2 resolving to this box)
-The mesh builds `scripts/ssl-setup.sh` + the nginx 443 config (F1). Once present:
-```bash
-cd /opt/jarvis
-./scripts/ssl-setup.sh jarvis.versalabs.dev      # certbot webroot issue
-docker compose restart nginx
-```
-Then verify:
-```bash
-curl -fsSI https://jarvis.versalabs.dev            # 200 over TLS
-curl -fsSI http://jarvis.versalabs.dev             # 301 → https
-curl -fsS  https://jarvis.versalabs.dev/api/admin/health   # ok through nginx
-```
-Confirm the response carries `Strict-Transport-Security` (HSTS).
-
-## 2.2 — The §5.9 live go-live gate (this is the MVP gate)
+## 2.1 — The §5.9 live go-live gate (this is the MVP gate)
 Walk the Part 5 §5.9 checklist with me:
-- [ ] Dashboard over TLS; login works; http→https redirect; HSTS present
+- [ ] Dashboard (Vercel) over TLS; login works; http→https redirect; HSTS present
+- [ ] `https://api.jarvis.versalabs-studio.com/health` → 200; `/api/admin/health` (admin-auth) → 200; WS works through nginx (wss)
 - [ ] Chat streams (< 3s to first token); services page shows real container statuses; restart works via socket-proxy
-- [ ] Expo app connects to the VPS (not localhost) — `EXPO_PUBLIC_API_URL=https://jarvis.versalabs.dev`; full mobile→Hermes→MCP round trip
+- [ ] Expo app connects to the VPS (not localhost) — `EXPO_PUBLIC_API_URL=https://api.jarvis.versalabs-studio.com`; full mobile→Hermes→MCP round trip
 - [ ] Telegram bot responds; cross-device (start on mobile, view on web)
 - [ ] Security: unauth requests rejected; nginx rate-limit blocks a flood
 - [ ] **Backup + restore drill:** `scripts/backup.sh` produces a `pg_dump` off-box; `scripts/restore.sh` restores it into a scratch DB successfully (this is a real drill, not a checkbox)
@@ -280,8 +319,8 @@ When §5.9 is green on the box, **v1.5 is shipped.** That's MVP.
 ## Rollback & safety net
 
 - **Bad deploy:** `git checkout <previous-good-commit> && docker compose up -d --build` (RTO ≈ a few minutes). The stack is stateless except Redis + hermes-data; your DB is hosted Supabase, untouched by a code rollback.
-- **Locked out by firewall:** use the provider's web console (Hetzner Cloud Console → the VM → Console) to log in and `sudo ufw allow 22/tcp`.
-- **TLS won't issue:** confirm DNS resolves to the box AND ports 80/443 are open in BOTH `ufw` and any provider cloud firewall; certbot needs port 80 reachable for the ACME challenge.
+- **Locked out by firewall:** use the provider's web console (Hetzner Cloud Console → the VM → Console) to log in. Do NOT enable `ufw` from there (RULE 2); instead, fix the Hetzner Cloud Firewall in the Hetzner console.
+- **TLS won't issue:** confirm DNS resolves to the box AND ports 80/443 are open in the Hetzner Cloud Firewall (NOT ufw — RULE 2); certbot needs port 80 reachable for the ACME challenge.
 - **DB safety:** never run `restore.sh` against the live project — restore into a scratch DB for the drill.
 
 ---
@@ -297,9 +336,12 @@ docker compose restart api
 # Full bring-up / tear-down
 docker compose up -d
 docker compose down            # (keeps named volumes)
-# Health
-curl -fsS http://localhost:8765/health
-curl -fsS http://localhost:3001/api/admin/health
+# Health (loopback — the vhost is the public face)
+curl -fsS http://127.0.0.1:3001/health
+# Health (TLS, through nginx — once certbot-issue.sh has run)
+curl -fsSI https://api.jarvis.versalabs-studio.com/health
+# Hermes health (internal — exec into the container)
+docker compose exec hermes wget -qO- http://localhost:8765/health
 # Cron sanity (after deploy)
 docker compose exec hermes sh -c 'echo check the cron registry / BullMQ keys in redis'
 ```
@@ -311,18 +353,18 @@ docker compose exec hermes sh -c 'echo check the cron registry / BullMQ keys in 
 | Task | Who |
 |------|-----|
 | Decide which IP is the real VPS; confirm the host-key change is a legitimate rebuild | **You** (security decision) |
-| Point DNS; create Telegram bot; gather/enter secrets; OAuth consent screens | **You** (creds & accounts) |
-| Run the OS-hardening commands (0.3), clone (0.4), health checks, TLS | **Me, over SSH** — once 0.1 is settled and you say go (I run them batch-by-batch, confirming each outward step), **or** you paste the blocks yourself |
+| Point DNS; create Telegram bot; gather/enter secrets; OAuth consent screens; Vercel web deploy | **You** (creds & accounts) |
+| Run the OS-hardening (`setup-vps.sh`), swap (`setup-swap.sh`), certbot (`certbot-issue.sh`), boot-smoke | **Me, over SSH** — once 0.1 is settled and you say go (I run them batch-by-batch, confirming each outward step), **or** you paste the blocks yourself |
 | Approve `develop → main` promotion | **You** (architect) |
 
 ### Letting me drive (if you want it)
 After you've settled 0.1, tell me: **(a)** the confirmed IP, **(b)** that the rebuild was intentional (so the host-key reset is safe), and **(c)** "go." I'll then:
 1. Verify reachability with a read-only probe (`whoami`, OS, docker version).
-2. Run Stage 0.3–0.4 in small batches, showing you output and pausing on anything outward-facing or destructive.
-3. **Stop at the Stage 0/1 boundary** and not bring up the app stack until you confirm F0 is merged.
+2. Run Stage 0.3–0.5 + 1.3–1.5 in small batches, showing you output and pausing on anything outward-facing or destructive.
+3. **Stop at the Stage 1/2 boundary** and not run the §5.9 live gate until you confirm the stack is healthy on TLS.
 
 I cannot type into interactive prompts (sudo password, ssh passphrase, certbot questions) — so for me to drive, your SSH must be **key-based with no passphrase prompt**, and `sudo` should be passwordless for your user (or you run the `sudo` steps yourself and I do the rest). If either isn't true, the cleanest split is: you run the handful of `sudo`/interactive lines, I drive everything else.
 
 ---
 
-*Phase F operator runbook — © 2026 Kidus Abdula / VersaLabs Studio. Stage 0 now; Stages 1–2 after F0. The app stack does not come up until `node dist` boots clean.*
+*Phase F operator runbook — © 2026 Kidus Abdula / VersaLabs Studio. Stage 0 now; Stages 1–2 after F0. The app stack does not come up until `node dist` boots clean. F1 web-on-Vercel + co-tenancy rebuild is in the F1 commit on `phase/f-deploy`; see `docs/PHASE-F-F1-REBUILD-NOTES.md` for the architectural decision log.*
