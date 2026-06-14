@@ -14,8 +14,25 @@ const envSchema = z.object({
   REDIS_URL: z.string().url().optional(),
   DOCKER_HOST: z.string().optional(),
   HERMES_URL: z.string().url().default("http://hermes:8765"),
+  // CORS allow-origin(s) — comma-separated. REQUIRED in production
+  // (the Vercel web origin: https://jarvis.versalabs-studio.com).
+  // The .refine() below fail-loud at boot if NODE_ENV=production and
+  // CORS_ORIGINS is unset/empty (security-patterns: default-deny for prod).
   CORS_ORIGINS: z.string().optional(),
-});
+  // Public base URL of THIS API (used for OAuth redirects, webhook
+  // callbacks, mobile deep-links). Optional in dev; recommended in prod.
+  PUBLIC_API_URL: z.string().url().optional(),
+}).refine(
+  (env) =>
+    env.NODE_ENV !== "production" ||
+    (typeof env.CORS_ORIGINS === "string" && env.CORS_ORIGINS.trim().length > 0),
+  {
+    message:
+      "CORS_ORIGINS is required in production (the Vercel web origin, " +
+      "e.g. 'https://jarvis.versalabs-studio.com').",
+    path: ["CORS_ORIGINS"],
+  },
+);
 // No refine — JWKS is always required
 
 export type Env = z.infer<typeof envSchema>;
