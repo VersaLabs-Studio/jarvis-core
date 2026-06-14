@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.5.0-dev] — v1.5 Build (Phases A–F)
+
+Release-line progress against `docs/V1.5-BUILD-HANDOFF.md` (`A Foundation → B API+Bridge → C Web → D Mobile → E Skills → F Deploy`). Each gate = Part 5 checklist + Code Review 0 blockers + Auditor ≥ 8.5.
+
+### Signed off (merged to `develop` + `main`)
+- **Phase A — Foundation** ✅ — Turborepo/pnpm monorepo, `@jarvis/shared` generated types, Docker Compose (socket-proxy/redis/nginx), CI + type-drift guard.
+- **Phase B — API + Hermes bridge** ✅ — Fastify 5 API, env/response envelope, Supabase-Auth verification + tenant context, CRUD route factory + entity registry, WS handler, services/secrets (AES-256-GCM), O(1) JWT-claim RLS. **WP-0 hardening (post-gate):** fp-wrapped shared plugins + uniform `tenantMiddleware` guard + `NO_TENANT` error (audited 9.0).
+- **Phase C — Web Dashboard** ✅ — OKLCH design system, query-key factory + generic hooks, 10 real-data pages with skeleton/empty/error states, auth UI + WS client. Color-gate 0.
+- **Phase D — Mobile App** ✅ — Expo SDK 56 app: D1 scaffold+design, D2 data layer, D3 dashboard+settings, D4 chat+WS streaming, D5 workflows+runs, D6 native platform (push stub, deep-link, haptics, SecureStore E2E). Final WP D6 audited **9.0/10**; merged-branch integrity re-verified (frozen install 0 · mobile/web/api tsc 0 · color/any 0 · expo-doctor 21/21 · expo export all platforms).
+  - **Deferred (architect-approved):** the live `GET /api/cms/workflows → 200` smoke gate moves to a later phase as a manual dev-server checklist (requires Supabase provisioning per `docs/PHASE-D-LIVE-GATE-FINDINGS.md` §3).
+
+### Next
+- **Phase E — Skills & Workflows** 🔜 — the Hermes agent runtime + 29 skill docs (11 foundational + 18 workflow) + pinned MCP image + cron. Handoff: `docs/PHASE-E-HANDOFF.md`.
+- **Phase F — Deploy & Polish** — TLS/Nginx, backups + restore drill, observability, VPS deploy. Folds the Phase D + live-gate carryover ledger.
+
+---
+
 ## [1.0.0] - 2026-03-31
 
 ### Added

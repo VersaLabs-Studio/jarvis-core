@@ -332,48 +332,32 @@ jarvis-core/                              # Root
 │       └── package.json
 │
 ├── services/                             # Infrastructure configs
-│   ├── hermes/
-│   │   ├── config.yaml                   # Hermes Agent configuration
-│   │   ├── skills/                       # Hermes skill documents (see Part 4)
-│   │   │   ├── ship-feature.md
-│   │   │   ├── morning-audit.md
-│   │   │   ├── debug-and-fix.md
-│   │   │   ├── deploy-to-vercel.md
-│   │   │   ├── deploy-to-vps.md
-│   │   │   ├── notion-update.md
-│   │   │   ├── create-proposal.md
-│   │   │   ├── code-review.md
-│   │   │   ├── github-pr-workflow.md
-│   │   │   ├── research-and-report.md
-│   │   │   ├── email-draft.md
-│   │   │   ├── project-onboard.md
-│   │   │   ├── content-creation.md
-│   │   │   ├── invoice-generation.md
-│   │   │   ├── data-analysis.md
-│   │   │   ├── seo-audit.md
-│   │   │   ├── api-integration.md
-│   │   │   └── client-report.md
-│   │   └── Dockerfile                    # Hermes container customizations
+│   ├── nginx/
+│   │   ├── nginx.conf                    # Reverse proxy config
+│   │   ├── conf.d/
+│   │   │   └── default.conf              # Server block
+│   │   └── ssl/                          # Certificates (generated on VPS)
 │   │
-│   ├── mcp/                              # MCP server configs
-│   │   ├── github/
-│   │   │   └── config.yaml
-│   │   ├── vercel/
-│   │   │   └── config.yaml
-│   │   ├── notion/
-│   │   │   └── config.yaml
-│   │   ├── browser/
-│   │   │   └── config.yaml
-│   │   ├── gmail/
-│   │   │   └── config.yaml
-│   │   ├── supabase/
-│   │   │   └── config.yaml
-│   │   ├── filesystem/
-│   │   │   └── config.yaml
-│   │   ├── slack/
-│   │   │   └── config.yaml
-│   │   └── linear/
-│   │       └── config.yaml
+│   │  # HERMES (Phase E — moved under apps/ per Phase E Plan §1.1
+│   │  # resolution; the path is canonical with the pnpm workspace
+│   │  # `apps/*` glob. The skills dir is bind-mounted at /app/data/skills.)
+│   apps/hermes/                          # Hermes agent runtime
+│   ├── src/                              # (server.ts, config/, lib/, routes/, sandbox/)
+│   ├── skills/
+│   │   ├── foundational/                 # 11 system-context skill docs
+│   │   └── workflow/                     # 18 user-triggered skill docs
+│   ├── Dockerfile
+│   ├── package.json
+│   └── tsconfig.json
+│
+│   ├── mcp/                              # MCP server base image (Phase E3)
+│   │   ├── Dockerfile                    # one base image, 6 pinned npm packages
+│   │   ├── github/config.yaml
+│   │   ├── vercel/config.yaml            # doc-only (Vercel MCP is hosted)
+│   │   ├── notion/config.yaml
+│   │   ├── supabase/config.yaml
+│   │   ├── filesystem/config.yaml
+│   │   └── browser/config.yaml
 │   │
 │   └── nginx/
 │       ├── nginx.conf                    # Reverse proxy config
@@ -678,12 +662,18 @@ services:
 
 ## 1.5 Hermes Agent Configuration
 
-### File: `services/hermes/config.yaml`
+### File: `apps/hermes/config/chains.ts` (Phase E)
+
+> **C5 audit fix (June 2026):** model IDs verified against OpenRouter at Hermes
+> boot. The `zhipu/glm-5-turbo` slug from earlier drafts is replaced with
+> `z-ai/glm-5` — GLM-5 is published under **Z.ai**. Boot-time resolver tries
+> the configured ID; on 404 it auto-corrects to a working candidate and
+> logs the substitution. See Part 4 §4.7 for the full table.
 
 ```yaml
-# ═══════════════════════════════════════════════════════
-# JARVIS v1.5 — Hermes Agent Configuration
-# ═══════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════
+# JARVIS v1.5 — Hermes Agent Configuration (Phase E)
+# ═══════════════════════════════════════════════════════════════════
 
 identity:
   name: "JARVIS"
@@ -704,19 +694,19 @@ provider:
     planning:
       primary: "nvidia/nemotron-3-super-120b-a12b:free"
       fallback:
-        - "zhipu/glm-5-turbo"
+        - "z-ai/glm-5"
         - "minimax/minimax-m2-5:free"
     coding:
       primary: "nvidia/nemotron-3-super-120b-a12b:free"
       fallback:
-        - "zhipu/glm-5-turbo"
+        - "z-ai/glm-5"
         - "minimax/minimax-m2-5:free"
     office:
       primary: "minimax/minimax-m2-5:free"
       fallback:
         - "nvidia/nemotron-3-super-120b-a12b:free"
     fast:
-      primary: "zhipu/glm-5-turbo"
+      primary: "z-ai/glm-5"
       fallback:
         - "minimax/minimax-m2-5:free"
     audit:

@@ -1,0 +1,32 @@
+# Supabase MCP server (Phase E §5.3 E3 — C4: name corrected)
+
+name: supabase
+transport: stdio
+package: "@supabase/mcp-server-supabase"
+endpoint: /call
+port: 8765
+
+# Auth: Supabase Personal Access Token (PAT)
+# Generate: https://supabase.com/dashboard/account/tokens
+env:
+  - SUPABASE_ACCESS_TOKEN
+  - SUPABASE_PROJECT_REF  # the project ID (e.g. "abcdefghijkl")
+
+# Tool surface (per @supabase/mcp-server-supabase)
+tools:
+  - list_tables
+  - execute_sql
+  - apply_migration
+  - list_extensions
+  - get_advisors
+  - get_logs
+  - list_branches
+  - create_branch
+  - merge_branch
+  - reset_branch
+  - list_organizations
+
+# Notes:
+# - Name corrected (C4): @supabase/mcp-server-supabase, NOT @supabase/mcp-server
+# - SQL execution is read-scoped by default; use a read-scoped service role
+# - Migrations go through apply_migration (writes to the migration log)

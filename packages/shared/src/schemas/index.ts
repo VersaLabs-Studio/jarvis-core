@@ -15,3 +15,24 @@ export const apiResponseSchema = <T extends z.ZodType>(dataSchema: T) =>
   });
 
 export type PaginationInput = z.infer<typeof paginationSchema>;
+
+// Phase E — Hermes skill frontmatter (distinct from the DB `skills` table)
+export {
+  skillFrontmatterSchema,
+  skillDocSchema,
+  skillCategorySchema,
+  skillRoleSchema,
+  estimatedTimeSchema,
+  type SkillFrontmatter,
+  type SkillDoc,
+} from "./skill-doc.schema.js";
+
+// Phase E — In-memory cron job registry
+export {
+  cronJobSchema,
+  cronRegistrySchema,
+  cronScheduleSchema,
+  cronNotifySchema,
+  type CronJob,
+  type CronRegistry,
+} from "./cron.schema.js";
