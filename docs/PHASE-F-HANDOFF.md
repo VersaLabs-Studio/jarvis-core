@@ -47,6 +47,23 @@ The API image build emits nothing because the root tsconfig sets `noEmit:true` a
 
 ## 2. F1 — Deploy infrastructure (mesh builds; Kidus runs on the VPS)
 
+> 🚨 **CO-TENANCY CONSTRAINT (audited 2026-06-13 — supersedes the Part 5 §5.2 dedicated-box compose).** The target VPS (`91.99.119.239`, host `pana`) is **NOT dedicated** — it runs a live bare-metal ERPNext/Frappe `bench`. Audited footprint: **host nginx 1.18.0 owns port 80** (Frappe), MariaDB `:3306`, Frappe Redis `:11000`/`:13000`, gunicorn `:8000`, socketio `:9000`; **Docker not installed; `:443` and `:6379` are free; `ufw` inactive.** Therefore F1's nginx/compose MUST change:
+> 1. **JARVIS does NOT bind host `80`/`443`.** Drop the published `nginx` service from JARVIS's compose (or bind it to `127.0.0.1` only). JARVIS `web`/`api`/`hermes` publish on **loopback** (`127.0.0.1:3000` / `:3001` / `:8765`).
+> 2. **Front door = the EXISTING host nginx.** Deliver a vhost snippet (`server_name jarvis.versalabs.dev`) that reverse-proxies to the loopback ports (incl. the `/ws` upgrade), to be `include`d into the host nginx — **find and never clobber the Frappe bench config first** (`sites-enabled` is empty; config lives in `conf.d`/bench-generated).
+> 3. **TLS on the host nginx** via certbot for `jarvis.versalabs.dev` (port 443 is free). The `limit_req_zone` (fix B3) goes in the host nginx `http{}`.
+> 4. **JARVIS Redis stays internal** to the compose network — no host `6379` publish.
+> 5. **No `ufw` step** on this box (would sever Frappe's `:8080`/`:9000`); document reliance on the Hetzner Cloud Firewall instead.
+> 6. **Resource budget is tight:** 7.6 GB RAM, ~5.7 GB free with Frappe running, **0 B swap.** Add a 2–4 GB swapfile in the deploy script; keep the existing `mem_limit`s (they sum to ~4 GB — fits with swap headroom).
+>
+> The original §5.2 nginx (own 80/443 server) and the `setup-vps.sh` `ufw` block are **dedicated-box artifacts — do not apply them verbatim here.**
+>
+> 🌐 **WEB-ON-VERCEL SPLIT + CONCRETE DOMAINS (confirmed 2026-06-14; DNS live).** `apps/web` deploys to **Vercel**, NOT the VPS — **drop the `web` service from the VPS compose entirely**; the host-nginx vhost proxies **only the API + `/ws`**. Final wiring:
+> - **Web:** `https://jarvis.versalabs-studio.com` → Vercel (covered by the existing `*` wildcard ALIAS; attach to the JARVIS web project at deploy).
+> - **API/Hermes:** `https://api.jarvis.versalabs-studio.com` → **A-record → `91.99.119.239` (live)** → host nginx vhost → `127.0.0.1:3001` (api) + `/ws` upgrade. certbot issues here (CAA already permits `letsencrypt.org`).
+> - **API env:** public base URL + **CORS allow-origin `https://jarvis.versalabs-studio.com`** (the Vercel web origin) + WS origin allow; the Fastify API must accept cross-origin from the Vercel domain.
+> - **Web env (Vercel):** `NEXT_PUBLIC_API_URL=https://api.jarvis.versalabs-studio.com`; WS `wss://api.jarvis.versalabs-studio.com/ws`.
+> - **Mobile (Expo):** `EXPO_PUBLIC_API_URL=https://api.jarvis.versalabs-studio.com`.
+
 Per Part 5 §5.2–§5.3. Audit what already exists before writing (compose already has all 6 app services + 6 MCP services + nginx + socket-proxy; `scripts/` has `deploy.sh`, `health-check.sh`, `docker-*`).
 
 1. **`services/nginx/` does not exist yet** — create `nginx.conf` (with `limit_req_zone` in `http{}` — fix B3) + `conf.d/default.conf` (TLS on 443, 80→443 redirect except ACME, HSTS + security headers, `/ws` upgrade, chat/api rate-limit zones) exactly per §5.2.

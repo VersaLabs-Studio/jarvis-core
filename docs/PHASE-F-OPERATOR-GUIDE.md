@@ -11,8 +11,43 @@
 **RULE 1 — Do NOT bring up the application stack until F0 is merged to `develop`.**
 The current build crashes on boot (`@jarvis/shared` ships raw TypeScript; `node dist/server.js` cannot load it — both `api` and `hermes` die immediately). Running `docker compose up -d` on the full stack today gives you a restart-looping mess and tells you nothing. **Everything in Stage 0 below is safe to do now** because it's OS/DNS/secret prep that never starts the broken app. The app stack waits for Stage 1.
 
-**RULE 2 — Never run `ufw enable` before allowing SSH.**
-Always `ufw allow 22/tcp` **first**. If you enable the firewall with SSH not allowed, you lock yourself out of your own box and have to use the provider's web console to recover. The order in Stage 0.3 is correct — don't reorder it.
+**RULE 2 — Do NOT enable `ufw` on this box (it's co-tenant with ERPNext).**
+The audit (below) shows `ufw` is currently **inactive** and Frappe/ERPNext is serving on several ports (80, 8080, 9000). Turning `ufw` on with a JARVIS-style `22/80/443`-only allow-list would likely **cut off ERPNext's realtime/secondary ports**. Leave `ufw` as-is; rely on the Hetzner Cloud Firewall instead (verify it allows 22/80/443). The original Part 5 `setup-vps.sh` `ufw` block assumes a *dedicated* box — **skip it here.**
+
+---
+
+## 🔎 Box audit (2026-06-13) — co-tenant with ERPNext: what's NOW vs DEFER vs CHANGED
+
+I drove a read-only audit of `pana` (`91.99.119.239`). Reality:
+
+| Found | Detail |
+|---|---|
+| **Host nginx** (1.18.0) | **owns port 80** (serving Frappe), also `:8080`. **No `:443` listener, no Let's Encrypt** → ERPNext is currently HTTP-only. **Port 443 is free.** |
+| **Frappe/ERPNext** | bare-metal `bench` at `/home/frappe/frappe-bench` (gunicorn `:8000`, node socketio `:9000`, supervisord). **Not dockerized.** |
+| **MariaDB** `:3306` + **Redis** `:11000` & `:13000` | Frappe's DB + caches (all `127.0.0.1`). **Redis `6379` is free.** |
+| **Docker** | **not installed** → our install is clean/additive, no existing containers/networks to collide with. |
+| **Resources** | **7.6 GB RAM, 5.7 GB available** (Frappe uses ~1.6 GB); **63 GB disk free**; 4 cores; **0 B swap.** |
+| **ufw** | **inactive.** |
+
+**This box is shared — the runbook's "dedicated box" assumptions change. The classification:**
+
+**✅ DO NOW (safe, no impact on Frappe):**
+- **0.2 DNS** — point `jarvis.versalabs.dev` → `91.99.119.239`.
+- **0.5 secrets / 0.6 Supabase check / 0.7 Telegram bot** — all off-box prep.
+- **Docker install** (`get.docker.com`) — clean, Frappe doesn't use it.
+- **Add swap** (recommended before bring-up — see below; 0 B swap + ~4 GB JARVIS need on top of Frappe is too tight without a cushion).
+
+**⛔ DEFER / SKIP (would risk Frappe):**
+- **0.3 firewall (`ufw enable`)** — SKIP (RULE 2 above).
+- **Any `docker compose up` of the app stack** — wait for F0-merged + the co-tenant compose (below).
+
+**🔧 CHANGED from the original plan (co-tenancy):**
+1. **JARVIS must NOT bind host `80`/`443`.** The existing host nginx stays the single front door. JARVIS containers publish on **`127.0.0.1` only** (web `:3000`, api `:3001`, hermes `:8765` — all free), and we add a **`server_name jarvis.versalabs.dev` vhost to the host nginx** that reverse-proxies to those loopback ports. JARVIS's *own* nginx container from the compose is dropped (or bound to loopback behind the host one).
+2. **TLS goes on the host nginx**, not a JARVIS nginx — certbot issues for `jarvis.versalabs.dev` on port 443 (free). Bonus: this finally gives the box TLS (ERPNext is HTTP-only today; we can extend the cert to Frappe's domain too if you want — your call, out of scope otherwise).
+3. **JARVIS Redis stays internal** to its docker network — no host `6379` publish (and `6379` is free anyway, so no conflict either way).
+4. **Add a swapfile** (2–4 GB) for memory headroom before running both stacks together.
+
+> The mesh built F1 assuming a dedicated box. I've patched `PHASE-F-HANDOFF.md` §2 with this co-tenancy constraint so the F1 nginx/compose is built as a *loopback + host-nginx-vhost* design, not a port-80 grab. Don't run F1's compose until that re-build lands.
 
 ---
 
