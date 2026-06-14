@@ -12,12 +12,22 @@ const HASH_FILE = join(ROOT, '.migration-hash')
 function hashMigrations(): string {
   const hash = createHash('sha256')
 
+  // Only hash schema-changing migrations. GRANT / REVOKE / COMMENT-only
+  // migrations (e.g. supabase/migrations/0004_role_grants.sql) don't
+  // change the generated types, so including them in the hash produces
+  // false-positive drift. The CREATE/ALTER/DROP regex is a cheap
+  // heuristic — if a future migration is "GRANTs + a CREATE", it's
+  // caught (CREATE matches), which is the right behavior.
   const files = readdirSync(MIGRATIONS_DIR)
     .filter((f) => f.endsWith('.sql'))
     .sort()
+    .filter((f) => {
+      const content = readFileSync(join(MIGRATIONS_DIR, f), 'utf-8')
+      return /CREATE|ALTER|DROP/i.test(content)
+    })
 
   if (files.length === 0) {
-    console.error('No migration files found in supabase/migrations/')
+    console.error('No schema-changing migration files found in supabase/migrations/')
     process.exit(1)
   }
 
