@@ -189,7 +189,8 @@ What the F1-rebuild `.env` requires (every var here is required in production �
 - `TELEGRAM_ALLOW_FROM=` — your numeric Telegram user/chat id (allowlist)
 
 **Observability (F2 — optional but recommended):**
-- `SENTRY_DSN=` or `GLITCHTIP_DSN=`
+- `SENTRY_DSN=` or `GLITCHTIP_DSN=` — point at a Sentry project or a GlitchTip host. Either enables error capture for both `api` and `hermes`. GlitchTip uses the same DSN format as Sentry (it speaks the Sentry envelope protocol). If BOTH are unset, error capture is silently disabled (no-op). Optional env tags: `SENTRY_ENVIRONMENT` (defaults to `NODE_ENV`), `SENTRY_RELEASE` (defaults to `1.5.0`; set to the deployed commit SHA for proper release tracking).
+- `SENTRY_DSN` takes priority over `GLITCHTIP_DSN` if both are set.
 
 > **Forbidden-to-sandbox set (FYI, no action):** Hermes deliberately strips `OPENROUTER_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `JWT_SECRET`, `SUPABASE_JWKS_URL`, `MASTER_ENCRYPTION_KEY`, `DOCKER_HOST`, `REDIS_URL`, `REDIS_PASSWORD` before spawning untrusted code. You still put them in `.env`; the runtime guarantees they never reach a sandboxed snippet. Nothing for you to configure — just know it's enforced.
 
@@ -267,9 +268,12 @@ Quick sanity (manual):
 docker compose ps                                  # no service in 'restarting'/'unhealthy'
 docker compose logs --tail=50 api hermes           # no boot crash, no MODULE_NOT_FOUND
 curl -fsS http://127.0.0.1:3001/health             # API → 200 (loopback)
+curl -fsS http://127.0.0.1:3001/ready              # API → 200 (readiness; checks redis + Supabase)
 docker compose exec hermes wget -qO- http://localhost:8765/health  # Hermes → 200 (internal)
 docker compose exec redis redis-cli -a "$REDIS_PASSWORD" ping     # → PONG
 ```
+
+> **F2 read vs health.** `/health` is a fast liveness probe (the process is up). `/ready` is a readiness probe that pings outbound dependencies — redis (if `REDIS_URL`) and the hosted Supabase JWKS endpoint. 503 ⇒ not ready (orchestrator should not route traffic). Wire `/ready` into your load balancer / monitoring separately; docker compose healthchecks use `/health` (intentional, fast liveness).
 
 ## 1.5 — Issue TLS (requires DNS from 0.2 resolving to this box)
 ```bash
