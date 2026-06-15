@@ -22,6 +22,14 @@ const envSchema = z.object({
   // Public base URL of THIS API (used for OAuth redirects, webhook
   // callbacks, mobile deep-links). Optional in dev; recommended in prod.
   PUBLIC_API_URL: z.string().url().optional(),
+  // F2 — observability. Either SENTRY_DSN or GLITCHTIP_DSN (GlitchTip is
+  // Sentry-API-compatible, same DSN format) enables error capture. Both
+  // optional; if unset, the Sentry plugin is a no-op.
+  SENTRY_DSN: z.string().url().optional(),
+  GLITCHTIP_DSN: z.string().url().optional(),
+  // Sentry release tagging. Optional; defaults to "1.5.0" + NODE_ENV.
+  SENTRY_ENVIRONMENT: z.string().optional(),
+  SENTRY_RELEASE: z.string().optional(),
 }).refine(
   (env) =>
     env.NODE_ENV !== "production" ||
@@ -68,6 +76,10 @@ export function validateEnv(): Env {
     REDIS_URL: _env.REDIS_URL,
     DOCKER_HOST: _env.DOCKER_HOST,
     HERMES_URL: _env.HERMES_URL,
+    SENTRY_DSN: _env.SENTRY_DSN ? "***" : "not set",
+    GLITCHTIP_DSN: _env.GLITCHTIP_DSN ? "***" : "not set",
+    SENTRY_ENVIRONMENT: _env.SENTRY_ENVIRONMENT,
+    SENTRY_RELEASE: _env.SENTRY_RELEASE,
   });
 
   return _env;
@@ -85,3 +97,12 @@ export const env = new Proxy({} as Env, {
     return getEnv()[prop as keyof Env];
   },
 });
+
+/**
+ * Test-only escape hatch. Clears the cached env so the next
+ * `validateEnv()` (or any `env.X` read) re-parses `process.env`. Not
+ * for production use.
+ */
+export function _resetEnvForTest(): void {
+  _env = null;
+}
