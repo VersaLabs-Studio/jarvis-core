@@ -104,6 +104,11 @@ services:
       # the API's auth middleware checks on /api/cms/workflow_runs.
       - API_URL=http://api:3001
       - HERMES_SERVICE_TOKEN=${HERMES_SERVICE_TOKEN}
+      # F2 — observability. Both optional; Sentry init no-ops if both unset.
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - GLITCHTIP_DSN=${GLITCHTIP_DSN:-}
+      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
+      - SENTRY_RELEASE=${SENTRY_RELEASE:-1.5.0}
     volumes:
       - hermes-data:/app/data
     user: "1001:1001"
@@ -166,6 +171,11 @@ services:
       # Public base URL of THIS API — used for OAuth redirects, webhook
       # callbacks, and the mobile app's EXPO_PUBLIC_API_URL.
       - PUBLIC_API_URL=${PUBLIC_API_URL}
+      # F2 — observability. Both optional; Sentry init no-ops if both unset.
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - GLITCHTIP_DSN=${GLITCHTIP_DSN:-}
+      - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
+      - SENTRY_RELEASE=${SENTRY_RELEASE:-1.5.0}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
