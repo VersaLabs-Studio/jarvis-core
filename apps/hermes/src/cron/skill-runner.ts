@@ -17,6 +17,7 @@
 // =============================================================================
 
 import { log } from "../lib/logger.js";
+import { getRequestId } from "../lib/request-context.js";
 
 export type SkillCompletion =
   | { kind: "result"; runId: string; output: unknown }
@@ -50,9 +51,16 @@ export async function invokeSkillViaApi(params: InvokeSkillParams): Promise<Skil
   const subscribeRunId = params.runId ?? "any";
 
   // Step 1: POST /v1/skill/run → {run_id}
+  // F2 — propagate the current request id (if any) so the cron-driven
+  // loopback can be correlated end-to-end. Cron ticks that originate
+  // outside any inbound request will see `undefined` and hermes will
+  // generate its own id.
+  const requestId = getRequestId();
+  const initHeaders: Record<string, string> = { "Content-Type": "application/json" };
+  if (requestId) initHeaders["X-Request-Id"] = requestId;
   const initResponse = await fetch(`${params.baseUrl}/v1/skill/run`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: initHeaders,
     body: JSON.stringify({ skill: params.skill, args: params.args }),
     signal: AbortSignal.timeout(10_000),
   });

@@ -37,6 +37,14 @@ const envSchema = z.object({
   // (HTTP loopback; the API exposes the factory CRUD).
   API_URL: z.string().url().optional(),
   HERMES_SERVICE_TOKEN: z.string().optional(),
+
+  // F2 — observability. Either SENTRY_DSN or GLITCHTIP_DSN enables
+  // error capture. Both optional; if unset, the Sentry plugin is a
+  // no-op.
+  SENTRY_DSN: z.string().url().optional(),
+  GLITCHTIP_DSN: z.string().url().optional(),
+  SENTRY_ENVIRONMENT: z.string().optional(),
+  SENTRY_RELEASE: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -59,4 +67,13 @@ export function validateEnv(): Env {
 
 export function getEnv(): Env {
   return _env ?? validateEnv();
+}
+
+/**
+ * Test-only escape hatch. Clears the cached env so the next
+ * `validateEnv()` (or any `env.X` read) re-parses `process.env`. Not
+ * for production use.
+ */
+export function _resetEnvForTest(): void {
+  _env = null;
 }
