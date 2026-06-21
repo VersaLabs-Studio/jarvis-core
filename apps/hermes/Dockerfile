@@ -10,7 +10,7 @@
 # =============================================================================
 
 FROM node:20-alpine AS base
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 WORKDIR /app
 
 # ----------------------------------------------------------------------------
@@ -47,7 +47,7 @@ RUN pnpm --filter @jarvis/hermes build
 # runner — production image (H1 hardening: non-root, no caps)
 # ----------------------------------------------------------------------------
 FROM node:20-alpine AS runner
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@9.15.4 --activate
 
 # Non-root user (UID 1001) — required by H1 sandbox
 RUN addgroup -g 1001 hermes && adduser -D -u 1001 -G hermes hermes
