@@ -26,6 +26,13 @@ RUN pnpm install --frozen-lockfile
 # shared-builder — emits packages/shared/dist/ (F0 closure)
 # ----------------------------------------------------------------------------
 FROM base AS shared-builder
+# FIX A (Phase F Stage-2): shared/tsconfig.json extends ../../tsconfig.json
+# (TS5083 without it), and pnpm hoists `typescript` to the workspace-root
+# /app/node_modules/.pnpm store. Copying only packages/shared/node_modules
+# leaves the tsc symlink dangling and the build dies with TS5083 + a missing
+# `typescript` binary.
+COPY tsconfig.json ./
+COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 COPY packages/shared/ ./packages/shared/
 RUN pnpm --filter @jarvis/shared build
@@ -58,14 +65,19 @@ ENV NODE_ENV=production
 ENV PORT=8765
 ENV HOST=0.0.0.0
 
-# Copy built artifact + node_modules + workspace package.json.
-# F0 closure: the shared dist goes into the WORKSPACE (not the symlink)
-# so the api/hermes runtime sees packages/shared/dist/index.js (Node ESM
-# compatible) — NOT packages/shared/src/index.ts (which Node can't load).
-COPY --from=builder --chown=hermes:hermes /app/apps/hermes/dist ./dist
-COPY --from=builder --chown=hermes:hermes /app/apps/hermes/package.json ./
-COPY --from=deps    --chown=hermes:hermes /app/apps/hermes/node_modules ./node_modules
-COPY --from=builder --chown=hermes:hermes /app/packages ./packages
+# FIX D (SIMPLE — Phase F Stage-2): preserve the full workspace layout so
+# pnpm's relative symlinks resolve at runtime. The previous runner only
+# copied apps/hermes/node_modules (whose ../../node_modules/.pnpm/...
+# symlinks dangle in the runner) and ./packages (no .pnpm store), so
+# `node dist/server.js` crashed with ERR_MODULE_NOT_FOUND for fastify,
+# bullmq, etc. All H1 hardening PRESERVED: UID 1001, cap_drop, read_only
+# rootfs (compose), /app/tmp tmpfs, /app/data volume, HEALTHCHECK,
+# skill-docs baked to /app/data/skills.
+COPY --from=builder --chown=hermes:hermes /app/node_modules          ./node_modules
+COPY --from=builder --chown=hermes:hermes /app/packages/shared      ./packages/shared
+COPY --from=builder --chown=hermes:hermes /app/apps/hermes/node_modules ./apps/hermes/node_modules
+COPY --from=builder --chown=hermes:hermes /app/apps/hermes/dist     ./apps/hermes/dist
+COPY --from=builder --chown=hermes:hermes /app/apps/hermes/package.json ./apps/hermes/
 
 # Bake the skill docs into the image so /v1/skills is populated on first boot.
 # The hermes-data volume (mounted at /app/data) is preserved so ops can replace
@@ -81,4 +93,4 @@ EXPOSE 8765
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=30s \
     CMD wget -qO- http://localhost:8765/health || exit 1
 
-CMD ["node", "dist/server.js"]
+CMD ["node", "apps/hermes/dist/server.js"]

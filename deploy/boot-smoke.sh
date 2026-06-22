@@ -139,7 +139,8 @@ fi
 # Bonus: docker-socket-proxy (Go, not Node; H1 dep)
 # ============================================================================
 hdr "boot-smoke: docker-socket-proxy (bonus)"
-if docker compose -f "$COMPOSE_PATH" exec -T docker-socket-proxy curl -fsS "http://localhost:2375/_ping" >/dev/null 2>&1; then
+# FIX C (Phase F Stage-2): the tecnativa image ships wget but NOT curl.
+if docker compose -f "$COMPOSE_PATH" exec -T docker-socket-proxy wget -qO- "http://localhost:2375/_ping" >/dev/null 2>&1; then
   ok "socket-proxy: GET /_ping → 200"
 else
   bad "socket-proxy: GET /_ping → not 200"

@@ -27,6 +27,13 @@ services:
   # ---------------------------------------------------------------------------
   # Docker Socket Proxy — least privilege (H1 fix)
   # Pinned to 0.3.0 (H2 — no :latest at runtime). INTERNAL ONLY.
+  #
+  # FIX B (Phase F Stage-2): NO `read_only: true`. The tecnativa:0.3.0
+  # entrypoint regenerates /usr/local/etc/haproxy/haproxy.cfg from a
+  # template in the same dir (which also holds errors/); a read-only
+  # rootfs breaks it. Real hardening remains: docker.sock :ro mount,
+  # env API-filter (EXEC=0, IMAGES=0, BUILD=0, …), internal-only network,
+  # mem_limit 64m.
   # ---------------------------------------------------------------------------
   docker-socket-proxy:
     image: tecnativa/docker-socket-proxy:0.3.0
@@ -42,12 +49,13 @@ services:
       - BUILD=0
       - TASKS=0
       - SERVICES=0
-    read_only: true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:2375/_ping"]
+      # FIX C (Phase F Stage-2): the tecnativa image ships wget but NOT
+      # curl. Use wget.
+      test: ["CMD", "wget", "-qO-", "http://localhost:2375/_ping"]
       interval: 30s
       timeout: 10s
       retries: 3
