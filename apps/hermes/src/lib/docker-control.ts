@@ -40,18 +40,33 @@ export async function initDockerControl(): Promise<void> {
     process.exit(1);
   }
   _baseUrl = env.DOCKER_HOST.replace(/\/+$/, "");
-  // Probe the proxy
-  try {
-    const response = await fetch(`${_baseUrl}/_ping`, { signal: AbortSignal.timeout(5_000) });
-    if (!response.ok) {
-      log.warn({ status: response.status }, "Socket-proxy ping non-2xx; docker-control is degraded");
-    } else {
-      _enabled = true;
-      log.info({ url: _baseUrl }, "Docker control connected to socket-proxy");
+  // #11 FIX (Phase F Stage-2): retry-with-backoff on the socket-proxy probe.
+  // At boot, the proxy DNS may not be warm yet (undici "fetch failed" on the
+  // first attempt even when the proxy is healthy). 3 attempts × 500ms = 1.5s
+  // total budget — sufficient for container networking to stabilise.
+  const MAX_ATTEMPTS = 3;
+  const BASE_DELAY_MS = 500;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const response = await fetch(`${_baseUrl}/_ping`, { signal: AbortSignal.timeout(5_000) });
+      if (!response.ok) {
+        log.warn({ status: response.status, attempt }, "Socket-proxy ping non-2xx; docker-control is degraded");
+      } else {
+        _enabled = true;
+        log.info({ url: _baseUrl, attempt }, "Docker control connected to socket-proxy");
+        break;
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (attempt < MAX_ATTEMPTS) {
+        const delay = BASE_DELAY_MS * attempt;
+        log.info({ attempt, maxAttempts: MAX_ATTEMPTS, delayMs: delay, msg }, "Socket-proxy probe failed; retrying…");
+        await new Promise(r => setTimeout(r, delay));
+      } else {
+        log.warn({ err: msg, attempts: MAX_ATTEMPTS }, "Socket-proxy unreachable after retries; docker-control disabled");
+        _enabled = false;
+      }
     }
-  } catch (err) {
-    log.warn({ err: err instanceof Error ? err.message : String(err) }, "Socket-proxy unreachable; docker-control disabled");
-    _enabled = false;
   }
 }
 

@@ -1,3 +1,9 @@
+// #9 FIX (Phase F Stage-2): supabase-js@2 eagerly builds its realtime client
+// inside createClient, which requires a WebSocket implementation. Native
+// WebSocket only exists on Node ≥21; this polyfill bridges Node 20.
+import { WebSocket } from "ws";
+(globalThis as any).WebSocket ??= WebSocket;
+
 import fp from "fastify-plugin";
 import type { FastifyInstance } from "fastify";
 import { createClient } from "@supabase/supabase-js";

@@ -119,7 +119,7 @@ else
 fi
 
 # Hermes has no host port — exec into the container for the health probe
-if docker compose -f "$COMPOSE_PATH" exec -T hermes wget -qO- "http://localhost:8765/health" 2>/dev/null | grep -q '"ok":true'; then
+if docker compose -f "$COMPOSE_PATH" exec -T hermes wget -qO- "http://127.0.0.1:8765/health" 2>/dev/null | grep -q '"ok":true'; then
   ok "hermes: GET /health → 200 (in-container)"
 else
   bad "hermes: GET /health → not 200 (in-container)"

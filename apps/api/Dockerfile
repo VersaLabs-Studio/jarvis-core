@@ -54,5 +54,5 @@ COPY --from=builder /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=builder /app/apps/api/dist         ./apps/api/dist
 COPY --from=builder /app/apps/api/package.json ./apps/api/
 
-EXPOSE 3000
+EXPOSE 3001
 CMD ["node", "apps/api/dist/server.js"]

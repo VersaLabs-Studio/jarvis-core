@@ -25,8 +25,11 @@ const envSchema = z.object({
   // F2 — observability. Either SENTRY_DSN or GLITCHTIP_DSN (GlitchTip is
   // Sentry-API-compatible, same DSN format) enables error capture. Both
   // optional; if unset, the Sentry plugin is a no-op.
-  SENTRY_DSN: z.string().url().optional(),
-  GLITCHTIP_DSN: z.string().url().optional(),
+  // #8 FIX (Phase F Stage-2): docker-compose passes SENTRY_DSN=${SENTRY_DSN:-}
+  // which injects an empty string (PRESENT but EMPTY) when the host var is
+  // unset. coerce empty → undefined so the .optional() contract holds.
+  SENTRY_DSN: z.preprocess(v => (v === "" ? undefined : v), z.string().url().optional()),
+  GLITCHTIP_DSN: z.preprocess(v => (v === "" ? undefined : v), z.string().url().optional()),
   // Sentry release tagging. Optional; defaults to "1.5.0" + NODE_ENV.
   SENTRY_ENVIRONMENT: z.string().optional(),
   SENTRY_RELEASE: z.string().optional(),

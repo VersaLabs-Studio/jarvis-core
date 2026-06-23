@@ -91,6 +91,6 @@ EXPOSE 8765
 
 # Healthcheck: Hermes' /health returns 200 + model + uptime
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=30s \
-    CMD wget -qO- http://localhost:8765/health || exit 1
+    CMD wget -qO- http://127.0.0.1:8765/health || exit 1
 
 CMD ["node", "apps/hermes/dist/server.js"]
