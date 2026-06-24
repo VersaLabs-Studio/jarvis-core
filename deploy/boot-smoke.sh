@@ -112,10 +112,12 @@ fi
 # ============================================================================
 hdr "boot-smoke: hermes (Node)"
 
-if docker compose -f "$COMPOSE_PATH" logs hermes 2>/dev/null | grep -q "Hermes listening on"; then
-  ok "hermes: 'Hermes listening on' in logs"
+# FIX #13: structured-log refactor dropped " on PORT" suffix; actual line:
+# {"msg":"Hermes listening","port":8765,...}
+if docker compose -f "$COMPOSE_PATH" logs hermes 2>/dev/null | grep -q "Hermes listening"; then
+  ok "hermes: 'Hermes listening' in logs"
 else
-  bad "hermes: 'Hermes listening on' NOT in logs"
+  bad "hermes: 'Hermes listening' NOT in logs"
 fi
 
 # Hermes has no host port — exec into the container for the health probe

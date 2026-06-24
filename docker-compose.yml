@@ -186,7 +186,8 @@ services:
       - SENTRY_RELEASE=${SENTRY_RELEASE:-1.5.0}
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:3001/health"]
+      # FIX #12: node:20-alpine does NOT ship curl. Use wget (busybox).
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/health"]
       interval: 10s
       timeout: 5s
       retries: 3
