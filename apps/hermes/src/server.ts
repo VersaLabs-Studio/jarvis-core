@@ -33,6 +33,7 @@ import { mcpTestRoute } from "./routes/mcp-test.js";
 import { cronListRoute } from "./routes/cron-list.js";
 import { wsRoute } from "./routes/ws.js";
 import { CronEngine } from "./cron/engine.js";
+import { startPoller, stopPoller } from "./telegram/poller.js";
 
 async function main(): Promise<void> {
   // 1. env
@@ -132,9 +133,13 @@ async function main(): Promise<void> {
     logger.warn({ reason: cronEngine.getDisabledReason() }, "Cron engine disabled");
   }
 
+  // 11. F — Telegram two-way channel (long-poll; non-fatal if token/allow-list missing)
+  startPoller();
+
   // Graceful shutdown
   const shutdown = async (signal: string): Promise<void> => {
     logger.info({ signal }, "Shutting down Hermes");
+    stopPoller();
     try {
       await fastify.close();
     } catch (err) {

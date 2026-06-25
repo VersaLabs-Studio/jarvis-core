@@ -117,6 +117,10 @@ services:
       - GLITCHTIP_DSN=${GLITCHTIP_DSN:-}
       - SENTRY_ENVIRONMENT=${SENTRY_ENVIRONMENT:-production}
       - SENTRY_RELEASE=${SENTRY_RELEASE:-1.5.0}
+      # F — Telegram two-way channel. BOT_TOKEN enables the bot; ALLOW_FROM
+      # gates inbound (comma-separated chat ids; empty = inbound disabled).
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_ALLOW_FROM=${TELEGRAM_ALLOW_FROM:-}
     volumes:
       - hermes-data:/app/data
     user: "1001:1001"

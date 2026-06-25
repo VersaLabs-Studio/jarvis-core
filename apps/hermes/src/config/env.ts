@@ -48,6 +48,13 @@ const envSchema = z.object({
   GLITCHTIP_DSN: z.preprocess(v => (v === "" ? undefined : v), z.string().url().optional()),
   SENTRY_ENVIRONMENT: z.string().optional(),
   SENTRY_RELEASE: z.string().optional(),
+
+  // Telegram bot (F — two-way channel for MVP).
+  // TELEGRAM_BOT_TOKEN: if set, enables outbound notifications + inbound polling.
+  // TELEGRAM_ALLOW_FROM: comma-separated chat ids; empty/unset => inbound DISABLED.
+  // #8 FIX pattern: coerce empty → undefined so docker-compose passthrough doesn't break boot.
+  TELEGRAM_BOT_TOKEN: z.preprocess(v => (v === "" ? undefined : v), z.string().min(10).optional()),
+  TELEGRAM_ALLOW_FROM: z.preprocess(v => (v === "" ? undefined : v), z.string().optional()),
 });
 
 export type Env = z.infer<typeof envSchema>;
