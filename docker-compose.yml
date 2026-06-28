@@ -219,12 +219,12 @@ services:
       context: .
       dockerfile: apps/mcp/Dockerfile
       args:
-        MCP_SDK_VERSION: "1.0.4"
-        MCP_GITHUB_VERSION: "0.6.0"
-        MCP_NOTION_VERSION: "1.0.0"
-        MCP_SUPABASE_VERSION: "1.0.0"
-        MCP_BROWSER_VERSION: "0.0.1"
-        MCP_FILESYSTEM_VERSION: "0.5.0"
+        MCP_SDK_VERSION: "1.29.0"
+        MCP_GITHUB_VERSION: "2025.4.8"
+        MCP_NOTION_VERSION: "2.4.1"
+        MCP_SUPABASE_VERSION: "0.8.2"
+        MCP_BROWSER_VERSION: "0.0.76"
+        MCP_FILESYSTEM_VERSION: "2026.1.14"
     profiles: ["build"]
     mem_limit: 96m
 
