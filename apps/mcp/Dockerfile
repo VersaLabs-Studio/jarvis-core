@@ -40,7 +40,7 @@ RUN npm install --no-audit --no-fund \
     @gongrzhe/server-gmail-autoauth-mcp@${MCP_GMAIL_VERSION}
 
 # Copy the HTTP-to-stdio bridge
-COPY --chown=mcp:mcp src/bridge.js ./bridge.js
+COPY --chown=mcp:mcp apps/mcp/src/bridge.js ./bridge.js
 
 # Default port; each per-server service can override via env
 ENV MCP_PORT=8765
