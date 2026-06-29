@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { ok, fail } from "../../lib/response.js";
 import { env } from "../../lib/env.js";
+import { getRequestId } from "../../lib/request-context.js";
 import { tenantMiddleware } from "../../middleware/tenant.js";
 
 const triggerSchema = z.object({
@@ -46,9 +47,13 @@ export async function workflowTriggerRoutes(fastify: FastifyInstance): Promise<v
       }
 
       const hermesUrl = env.HERMES_URL || "http://hermes:8765";
+      // F2 — propagate the inbound request id to the hermes dispatch.
+      const requestId = getRequestId();
+      const dispatchHeaders: Record<string, string> = { "Content-Type": "application/json" };
+      if (requestId) dispatchHeaders["X-Request-Id"] = requestId;
       fetch(`${hermesUrl}/v1/workflows/execute`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: dispatchHeaders,
         body: JSON.stringify({
           run_id: run!.id,
           workflow: workflow.definition,

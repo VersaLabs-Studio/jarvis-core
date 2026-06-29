@@ -1,18 +1,18 @@
-export type { Database, Json } from './database.types'
-export * from './api'
-export type { Tenant, TenantRow, TenantInsert, TenantUpdate, TenantPlan } from './tenant'
-export type { Profile, ProfileRow, ProfileInsert, ProfileUpdate, ProfileRole } from './profile'
-export type { Workflow, WorkflowRow, WorkflowInsert, WorkflowUpdate, WorkflowStatus } from './workflow'
-export type { Integration, IntegrationRow, IntegrationInsert, IntegrationUpdate, IntegrationStatus } from './integration'
-export type { Skill, SkillRow, SkillInsert, SkillUpdate, SkillStatus } from './skill'
-export type { Service, ServiceRow, ServiceInsert, ServiceUpdate, ServiceStatus } from './service'
-export type { Secret, SecretRow, SecretInsert, SecretUpdate, SecretType } from './secret'
-export type { ChatSession, ChatSessionRow, ChatSessionInsert, ChatSessionUpdate } from './chat-session'
-export type { ChatMessage, ChatMessageRow, ChatMessageInsert, ChatMessageUpdate, ChatMessageRole } from './chat-message'
-export type { WorkflowRun, WorkflowRunRow, WorkflowRunInsert, WorkflowRunUpdate, WorkflowRunStatus } from './workflow-run'
-export type { AnalyticsEvent, AnalyticsEventRow, AnalyticsEventInsert, AnalyticsEventUpdate } from './analytics-event'
-export type { SystemLog, SystemLogRow, SystemLogInsert, SystemLogUpdate, SystemLogLevel } from './system-log'
-export type { SystemInfo, SecuritySettings, BackupStatus, AdminUser, AdminOverview, FileNode, EnvVar, ConfigData } from './admin'
+export type { Database, Json } from './database.types.js'
+export * from './api.js'
+export type { Tenant, TenantRow, TenantInsert, TenantUpdate, TenantPlan } from './tenant.js'
+export type { Profile, ProfileRow, ProfileInsert, ProfileUpdate, ProfileRole } from './profile.js'
+export type { Workflow, WorkflowRow, WorkflowInsert, WorkflowUpdate, WorkflowStatus } from './workflow.js'
+export type { Integration, IntegrationRow, IntegrationInsert, IntegrationUpdate, IntegrationStatus } from './integration.js'
+export type { Skill, SkillRow, SkillInsert, SkillUpdate, SkillStatus } from './skill.js'
+export type { Service, ServiceRow, ServiceInsert, ServiceUpdate, ServiceStatus } from './service.js'
+export type { Secret, SecretRow, SecretInsert, SecretUpdate, SecretType } from './secret.js'
+export type { ChatSession, ChatSessionRow, ChatSessionInsert, ChatSessionUpdate } from './chat-session.js'
+export type { ChatMessage, ChatMessageRow, ChatMessageInsert, ChatMessageUpdate, ChatMessageRole } from './chat-message.js'
+export type { WorkflowRun, WorkflowRunRow, WorkflowRunInsert, WorkflowRunUpdate, WorkflowRunStatus } from './workflow-run.js'
+export type { AnalyticsEvent, AnalyticsEventRow, AnalyticsEventInsert, AnalyticsEventUpdate } from './analytics-event.js'
+export type { SystemLog, SystemLogRow, SystemLogInsert, SystemLogUpdate, SystemLogLevel } from './system-log.js'
+export type { SystemInfo, SecuritySettings, BackupStatus, AdminUser, AdminOverview, FileNode, EnvVar, ConfigData } from './admin.js'
 export type {
   HermesMessage,
   HermesToolCall,
@@ -35,7 +35,7 @@ export type {
   CronListResponse,
   CronJobMeta,
   HermesErrorCode,
-} from './hermes'
+} from './hermes.js'
 
 export type ID = string
 export type Timestamp = string

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getHermesClient } from "../../lib/hermes.js";
 import { fail } from "../../lib/response.js";
 import { tenantMiddleware } from "../../middleware/tenant.js";
-import "../../types/fastify";
+import "../../types/fastify.js";
 
 const sendMessageSchema = z.object({
   sessionId: z.string().uuid(),

@@ -16,6 +16,8 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
 import { validateEnv } from "./config/env.js";
+import { initSentry, registerSentryHooks } from "./plugins/sentry.js";
+import { genRequestId, requestIdPlugin } from "./plugins/request-id.js";
 import { getLogger, log } from "./lib/logger.js";
 import { resolveAllChains } from "./lib/model-resolver.js";
 import { initBudget, shutdownBudget } from "./lib/budget.js";
@@ -31,6 +33,7 @@ import { mcpTestRoute } from "./routes/mcp-test.js";
 import { cronListRoute } from "./routes/cron-list.js";
 import { wsRoute } from "./routes/ws.js";
 import { CronEngine } from "./cron/engine.js";
+import { startPoller, stopPoller } from "./telegram/poller.js";
 
 async function main(): Promise<void> {
   // 1. env
@@ -40,13 +43,32 @@ async function main(): Promise<void> {
   const logger = getLogger();
   logger.info({ env: { NODE_ENV: env.NODE_ENV, PORT: env.PORT, HOST: env.HOST } }, "Hermes booting");
 
+  // F2 — observability. Init Sentry BEFORE constructing Fastify so the
+  // init line is visible in the boot log. No-op if SENTRY_DSN/GLITCHTIP_DSN
+  // are unset.
+  const sentryEnabled = initSentry();
+  if (sentryEnabled) {
+    logger.info("Sentry error capture enabled");
+  }
+
   // Fastify
   const fastify = Fastify({
+    // F2 — request id from `X-Request-Id` header (validated) or generated.
+    genReqId: genRequestId,
     logger: false, // we use pino directly; Fastify's default would double-log
     disableRequestLogging: true,
   });
   await fastify.register(cors, { origin: true, credentials: true });
   await fastify.register(websocket);
+
+  // F2 — request-id plugin before any route so the id is in
+  // AsyncLocalStorage when routes (and cron-driven loopback) read it.
+  await fastify.register(requestIdPlugin);
+
+  // F2 — register the Sentry onError hook (no-op if Sentry is disabled).
+  if (sentryEnabled) {
+    registerSentryHooks(fastify);
+  }
 
   // 3. model resolver (C5 fix)
   try {
@@ -111,9 +133,13 @@ async function main(): Promise<void> {
     logger.warn({ reason: cronEngine.getDisabledReason() }, "Cron engine disabled");
   }
 
+  // 11. F — Telegram two-way channel (long-poll; non-fatal if token/allow-list missing)
+  startPoller();
+
   // Graceful shutdown
   const shutdown = async (signal: string): Promise<void> => {
     logger.info({ signal }, "Shutting down Hermes");
+    stopPoller();
     try {
       await fastify.close();
     } catch (err) {

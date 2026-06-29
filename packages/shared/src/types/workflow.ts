@@ -1,4 +1,4 @@
-import type { Database } from './database.types'
+import type { Database } from './database.types.js'
 
 export type WorkflowRow = Database['public']['Tables']['workflows']['Row']
 export type WorkflowInsert = Database['public']['Tables']['workflows']['Insert']

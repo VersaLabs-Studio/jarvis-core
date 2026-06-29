@@ -14,8 +14,36 @@ const envSchema = z.object({
   REDIS_URL: z.string().url().optional(),
   DOCKER_HOST: z.string().optional(),
   HERMES_URL: z.string().url().default("http://hermes:8765"),
+  // CORS allow-origin(s) — comma-separated. REQUIRED in production
+  // (the Vercel web origin: https://jarvis.versalabs-studio.com).
+  // The .refine() below fail-loud at boot if NODE_ENV=production and
+  // CORS_ORIGINS is unset/empty (security-patterns: default-deny for prod).
   CORS_ORIGINS: z.string().optional(),
-});
+  // Public base URL of THIS API (used for OAuth redirects, webhook
+  // callbacks, mobile deep-links). Optional in dev; recommended in prod.
+  PUBLIC_API_URL: z.string().url().optional(),
+  // F2 — observability. Either SENTRY_DSN or GLITCHTIP_DSN (GlitchTip is
+  // Sentry-API-compatible, same DSN format) enables error capture. Both
+  // optional; if unset, the Sentry plugin is a no-op.
+  // #8 FIX (Phase F Stage-2): docker-compose passes SENTRY_DSN=${SENTRY_DSN:-}
+  // which injects an empty string (PRESENT but EMPTY) when the host var is
+  // unset. coerce empty → undefined so the .optional() contract holds.
+  SENTRY_DSN: z.preprocess(v => (v === "" ? undefined : v), z.string().url().optional()),
+  GLITCHTIP_DSN: z.preprocess(v => (v === "" ? undefined : v), z.string().url().optional()),
+  // Sentry release tagging. Optional; defaults to "1.5.0" + NODE_ENV.
+  SENTRY_ENVIRONMENT: z.string().optional(),
+  SENTRY_RELEASE: z.string().optional(),
+}).refine(
+  (env) =>
+    env.NODE_ENV !== "production" ||
+    (typeof env.CORS_ORIGINS === "string" && env.CORS_ORIGINS.trim().length > 0),
+  {
+    message:
+      "CORS_ORIGINS is required in production (the Vercel web origin, " +
+      "e.g. 'https://jarvis.versalabs-studio.com').",
+    path: ["CORS_ORIGINS"],
+  },
+);
 // No refine — JWKS is always required
 
 export type Env = z.infer<typeof envSchema>;
@@ -51,6 +79,10 @@ export function validateEnv(): Env {
     REDIS_URL: _env.REDIS_URL,
     DOCKER_HOST: _env.DOCKER_HOST,
     HERMES_URL: _env.HERMES_URL,
+    SENTRY_DSN: _env.SENTRY_DSN ? "***" : "not set",
+    GLITCHTIP_DSN: _env.GLITCHTIP_DSN ? "***" : "not set",
+    SENTRY_ENVIRONMENT: _env.SENTRY_ENVIRONMENT,
+    SENTRY_RELEASE: _env.SENTRY_RELEASE,
   });
 
   return _env;
@@ -68,3 +100,12 @@ export const env = new Proxy({} as Env, {
     return getEnv()[prop as keyof Env];
   },
 });
+
+/**
+ * Test-only escape hatch. Clears the cached env so the next
+ * `validateEnv()` (or any `env.X` read) re-parses `process.env`. Not
+ * for production use.
+ */
+export function _resetEnvForTest(): void {
+  _env = null;
+}

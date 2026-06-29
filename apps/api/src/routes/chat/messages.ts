@@ -2,7 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { paginated, fail } from "../../lib/response.js";
 import { parsePagination } from "../../lib/pagination.js";
 import { tenantMiddleware } from "../../middleware/tenant.js";
-import "../../types/fastify";
+import "../../types/fastify.js";
 
 export async function chatMessagesRoute(fastify: FastifyInstance): Promise<void> {
   await fastify.register(async (s) => {

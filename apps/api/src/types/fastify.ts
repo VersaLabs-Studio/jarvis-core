@@ -7,6 +7,13 @@ declare module "fastify" {
     role: string;
     supabase: SupabaseClient;
     supabaseAdmin: SupabaseClient;
+    /**
+     * F2 — typed accessor for `request.id` (which carries the inbound
+     * `X-Request-Id` header, or a generated UUIDv4). Fastify already
+     * exposes `request.id` as a string; this is the same value with
+     * a more discoverable name for handler code.
+     */
+    requestId: string;
   }
 
   interface FastifyInstance {

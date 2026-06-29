@@ -3,7 +3,7 @@ import { z } from "zod";
 import { ok, paginated, fail } from "../../lib/response.js";
 import { parsePagination } from "../../lib/pagination.js";
 import { tenantMiddleware } from "../../middleware/tenant.js";
-import "../../types/fastify";
+import "../../types/fastify.js";
 
 const createSessionSchema = z.object({
   title: z.string().max(255).optional(),

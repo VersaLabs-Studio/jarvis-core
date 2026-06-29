@@ -3,9 +3,14 @@
 // Hermes HTTP client (SSE) — talks to the Hermes agent runtime on the
 // `jarvis-internal` network. The wire contract is owned by
 // `@jarvis/shared` (Phase E §1.2 resolution: client shape is canonical).
+//
+// F2 — propagates the inbound `X-Request-Id` to Hermes so a single
+// request log line can be correlated across api and hermes (and into
+// Sentry, via the request-id tag).
 // =============================================================================
 
 import { env } from "./env.js";
+import { getRequestId } from "./request-context.js";
 import type { SendMessageParams, HermesStreamChunk } from "@jarvis/shared";
 
 // Re-export the wire types so existing API consumers can keep importing
@@ -68,11 +73,16 @@ export class HermesClient {
   async *sendMessage(params: SendMessageParams): AsyncGenerator<HermesStreamChunk> {
     const { sessionId, message, model, tools, history } = params;
 
+    // F2 — propagate the inbound request id. `getRequestId()` returns
+    // undefined if the call is made outside a request (e.g. a future
+    // background job); hermes will generate its own id in that case.
+    const requestId = getRequestId();
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (requestId) headers["X-Request-Id"] = requestId;
+
     const response = await fetch(`${this.baseUrl}/v1/chat/stream`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
         session_id: sessionId,
         message,

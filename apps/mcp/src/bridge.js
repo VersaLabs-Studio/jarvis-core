@@ -17,14 +17,19 @@
 // Per-server packages (pinned in the Dockerfile, no -y, no latest):
 //   github     → @modelcontextprotocol/server-github@<pin>
 //   notion     → @notionhq/notion-mcp-server@<pin>
-//   supabase   → @supabase/mcp-server-supabase@<pin>     (corrected from @supabase/mcp-server; C4)
-//   browser    → @playwright/mcp@<pin>                    (corrected from @anthropic/mcp-server-browser; C4)
+//   supabase   → @supabase/mcp-server-supabase@<pin>
+//   browser    → @playwright/mcp@<pin>
 //   filesystem → @modelcontextprotocol/server-filesystem@<pin>
-//   gmail      → @gongrzhe/server-gmail-autoauth-mcp@<pin> (community; pending Part 4 §4.6)
+//
+// Entry paths are resolved at runtime from each package's own package.json
+// (preferring the first `bin` value, falling back to `main`, then index.js),
+// so the bridge stays version-proof across repins.
 // =============================================================================
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { createRequire } from "node:module";
+import path from "node:path";
 import { createServer } from "node:http";
 
 // ---------------------------------------------------------------------------
@@ -36,13 +41,23 @@ const PORT = parseInt(process.env.MCP_PORT || "8765", 10);
 const TOOL_REFRESH_INTERVAL_MS = 5 * 60_000; // refresh tools/list every 5 min
 
 const SERVER_PACKAGES = {
-  github: "@modelcontextprotocol/server-github/dist/index.js",
-  notion: "@notionhq/notion-mcp-server/dist/index.js",
-  supabase: "@supabase/mcp-server-supabase/dist/index.js",
-  browser: "@playwright/mcp/dist/index.js",
-  filesystem: "@modelcontextprotocol/server-filesystem/dist/index.js",
-  gmail: "@gongrzhe/server-gmail-autoauth-mcp/dist/index.js",
+  github: "@modelcontextprotocol/server-github",
+  notion: "@notionhq/notion-mcp-server",
+  supabase: "@supabase/mcp-server-supabase",
+  browser: "@playwright/mcp",
+  filesystem: "@modelcontextprotocol/server-filesystem",
 };
+
+const require = createRequire(import.meta.url);
+
+function resolveEntry(pkg) {
+  const pjPath = require.resolve(`${pkg}/package.json`);
+  const pj = require(pjPath);
+  let rel = typeof pj.bin === "string" ? pj.bin
+          : pj.bin && typeof pj.bin === "object" ? Object.values(pj.bin)[0]
+          : (pj.main || "index.js");
+  return path.join(path.dirname(pjPath), rel);
+}
 
 if (!SERVER_NAME || !SERVER_PACKAGES[SERVER_NAME]) {
   // eslint-disable-next-line no-console
@@ -56,9 +71,9 @@ if (!SERVER_NAME || !SERVER_PACKAGES[SERVER_NAME]) {
 
 const transport = new StdioClientTransport({
   command: "node",
-  args: [`node_modules/${SERVER_PACKAGES[SERVER_NAME]}`],
+  args: [resolveEntry(SERVER_PACKAGES[SERVER_NAME])],
   env: process.env, // forward all env vars (GITHUB_TOKEN, NOTION_TOKEN, etc.)
-  stderr: "pipe",
+  stderr: "inherit",
 });
 
 const client = new Client(
@@ -67,13 +82,6 @@ const client = new Client(
 );
 
 await client.connect(transport);
-
-// stderr is consumed; pipe to our stderr for visibility
-if (transport.stderr) {
-  transport.stderr.on("data", (chunk) => {
-    process.stderr.write(`[${SERVER_NAME} stderr] ${chunk.toString()}`);
-  });
-}
 
 let cachedTools = [];
 let lastRefreshAt = 0;

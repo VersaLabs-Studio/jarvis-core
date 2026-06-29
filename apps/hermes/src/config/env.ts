@@ -37,6 +37,24 @@ const envSchema = z.object({
   // (HTTP loopback; the API exposes the factory CRUD).
   API_URL: z.string().url().optional(),
   HERMES_SERVICE_TOKEN: z.string().optional(),
+
+  // F2 — observability. Either SENTRY_DSN or GLITCHTIP_DSN enables
+  // error capture. Both optional; if unset, the Sentry plugin is a
+  // no-op.
+  // #8 FIX (Phase F Stage-2): docker-compose passes SENTRY_DSN=${SENTRY_DSN:-}
+  // which injects an empty string (PRESENT but EMPTY) when the host var is
+  // unset. coerce empty → undefined so the .optional() contract holds.
+  SENTRY_DSN: z.preprocess(v => (v === "" ? undefined : v), z.string().url().optional()),
+  GLITCHTIP_DSN: z.preprocess(v => (v === "" ? undefined : v), z.string().url().optional()),
+  SENTRY_ENVIRONMENT: z.string().optional(),
+  SENTRY_RELEASE: z.string().optional(),
+
+  // Telegram bot (F — two-way channel for MVP).
+  // TELEGRAM_BOT_TOKEN: if set, enables outbound notifications + inbound polling.
+  // TELEGRAM_ALLOW_FROM: comma-separated chat ids; empty/unset => inbound DISABLED.
+  // #8 FIX pattern: coerce empty → undefined so docker-compose passthrough doesn't break boot.
+  TELEGRAM_BOT_TOKEN: z.preprocess(v => (v === "" ? undefined : v), z.string().min(10).optional()),
+  TELEGRAM_ALLOW_FROM: z.preprocess(v => (v === "" ? undefined : v), z.string().optional()),
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -59,4 +77,13 @@ export function validateEnv(): Env {
 
 export function getEnv(): Env {
   return _env ?? validateEnv();
+}
+
+/**
+ * Test-only escape hatch. Clears the cached env so the next
+ * `validateEnv()` (or any `env.X` read) re-parses `process.env`. Not
+ * for production use.
+ */
+export function _resetEnvForTest(): void {
+  _env = null;
 }

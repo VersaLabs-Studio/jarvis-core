@@ -1,4 +1,4 @@
-import type { EntityKey } from "../config/entities";
+import type { EntityKey } from "../config/entities.js";
 
 export interface ListOpts {
   page?: number;

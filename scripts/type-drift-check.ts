@@ -12,12 +12,32 @@ const HASH_FILE = join(ROOT, '.migration-hash')
 function hashMigrations(): string {
   const hash = createHash('sha256')
 
+  // Only hash schema-changing migrations. GRANT / REVOKE / COMMENT-only
+  // migrations (e.g. supabase/migrations/0004_role_grants.sql) don't
+  // change the generated types, so including them in the hash produces
+  // false-positive drift.
+  //
+  // The F1 fix's heuristic (`/CREATE|ALTER|DROP/i`) was too broad — it
+  // matched `ALTER DEFAULT PRIVILEGES` in 0004_role_grants.sql, so 0004
+  // was always included. The F2 fix is more specific: match the actual
+  // DDL keyword that changes the schema (TABLE, INDEX, VIEW, FUNCTION,
+  // TYPE, SEQUENCE, EXTENSION, SCHEMA, MATERIALIZED VIEW). This excludes
+  // `ALTER DEFAULT PRIVILEGES` (a grant-altering statement) and the
+  // GRANT/REVOKE statements, while still catching every CREATE OR
+  // REPLACE FUNCTION / CREATE TABLE / etc. that the generated types
+  // actually depend on.
   const files = readdirSync(MIGRATIONS_DIR)
     .filter((f) => f.endsWith('.sql'))
     .sort()
+    .filter((f) => {
+      const content = readFileSync(join(MIGRATIONS_DIR, f), 'utf-8')
+      return /\b(CREATE|ALTER|DROP)\b\s+(\bOR\s+\bREPLACE\s+)?(TABLE|INDEX|VIEW|FUNCTION|TYPE|SEQUENCE|EXTENSION|SCHEMA|MATERIALIZED\s+VIEW)\b/i.test(
+        content,
+      )
+    })
 
   if (files.length === 0) {
-    console.error('No migration files found in supabase/migrations/')
+    console.error('No schema-changing migration files found in supabase/migrations/')
     process.exit(1)
   }
 

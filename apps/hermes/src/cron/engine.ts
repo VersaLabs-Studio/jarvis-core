@@ -23,6 +23,8 @@ import { getEnv } from "../config/env.js";
 import { log } from "../lib/logger.js";
 import { CRON_REGISTRY } from "./registry.js";
 import { invokeSkillViaApi, type SkillCompletion } from "./skill-runner.js";
+import { sendMessage } from "../telegram/bot.js";
+import { parseAllowList } from "../telegram/poller.js";
 
 const CRON_QUEUE_NAME = "jarvis-cron";
 const SKILL_RUN_TIMEOUT_MS = 5 * 60_000; // 5 min cap on a single skill run
@@ -252,31 +254,48 @@ export class CronEngine {
   }
 
   /**
-   * Telegram notification — v1.5: structured log + system_logs row via the
-   * API factory. The real bot wiring is F-scope.
+   * Telegram notification — F: structured log + system_logs audit row via the
+   * API factory, PLUS real bot.sendMessage to each allow-list chat id.
+   * Non-fatal on failure (current try/catch stays).
    */
   private async notifyTelegram(cronJob: CronJob, completion: SkillCompletion): Promise<void> {
     const env = getEnv();
     const apiUrl = env.API_URL ?? "http://api:3000";
     const token = env.HERMES_SERVICE_TOKEN ?? "";
-    if (!token) return;
     const message = completion.kind === "result"
       ? `Cron ${cronJob.id} succeeded: ${typeof completion.output === "string" ? completion.output.slice(0, 280) : JSON.stringify(completion.output).slice(0, 280)}`
       : `Cron ${cronJob.id} failed: ${completion.error}`;
-    try {
-      await fetch(`${apiUrl}/api/cms/system_logs`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Service-Token": token },
-        body: JSON.stringify({
-          level: completion.kind === "result" ? "info" : "error",
-          source: `cron/${cronJob.id}`,
-          message: `TELEGRAM_NOTIFY (v1.5: structured log; F wires real bot): ${message}`,
-          payload: { cronJobId: cronJob.id, ...(completion.kind === "result" ? { output: completion.output } : { error: completion.error }) },
-        }),
-        signal: AbortSignal.timeout(WORKFLOW_RUN_API_TIMEOUT_MS),
-      });
-    } catch (err) {
-      log.warn({ err: err instanceof Error ? err.message : String(err), cronJobId: cronJob.id }, "notifyTelegram threw (non-fatal)");
+
+    // 1. System_logs audit row (existing; drop the "F wires real bot" wording)
+    if (token) {
+      try {
+        await fetch(`${apiUrl}/api/cms/system_logs`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Service-Token": token },
+          body: JSON.stringify({
+            level: completion.kind === "result" ? "info" : "error",
+            source: `cron/${cronJob.id}`,
+            message: `TELEGRAM_NOTIFY: ${message}`,
+            payload: { cronJobId: cronJob.id, ...(completion.kind === "result" ? { output: completion.output } : { error: completion.error }) },
+          }),
+          signal: AbortSignal.timeout(WORKFLOW_RUN_API_TIMEOUT_MS),
+        });
+      } catch (err) {
+        log.warn({ err: err instanceof Error ? err.message : String(err), cronJobId: cronJob.id }, "notifyTelegram system_logs threw (non-fatal)");
+      }
+    }
+
+    // 2. Real Telegram message to each allow-list chat id
+    const allowList = parseAllowList(env.TELEGRAM_ALLOW_FROM);
+    if (allowList.size === 0) {
+      log.info({ cronJobId: cronJob.id }, "notifyTelegram: no allow-list; skipping bot message");
+      return;
+    }
+    for (const chatId of allowList) {
+      const sent = await sendMessage(chatId, message);
+      if (!sent) {
+        log.warn({ chatId, cronJobId: cronJob.id }, "notifyTelegram: bot.sendMessage failed (non-fatal)");
+      }
     }
   }
 }

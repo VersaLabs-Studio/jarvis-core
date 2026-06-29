@@ -1,9 +1,9 @@
 import type { z } from "zod";
-import { workflowInsertSchema } from "../schemas/workflow.schema";
-import { integrationInsertSchema } from "../schemas/integration.schema";
-import { skillInsertSchema } from "../schemas/skill.schema";
-import { chatSessionInsertSchema } from "../schemas/chat-session.schema";
-import { workflowRunInsertSchema } from "../schemas/workflow-run.schema";
+import { workflowInsertSchema } from "../schemas/workflow.schema.js";
+import { integrationInsertSchema } from "../schemas/integration.schema.js";
+import { skillInsertSchema } from "../schemas/skill.schema.js";
+import { chatSessionInsertSchema } from "../schemas/chat-session.schema.js";
+import { workflowRunInsertSchema } from "../schemas/workflow-run.schema.js";
 
 export interface EntityConfig {
   table: string;

@@ -17,19 +17,26 @@
 //  - logs(name, tail) — GET /containers/{name}/logs?stdout=1&stderr=1&tail=N
 //
 // Anything not in this list is rejected at the module level.
+//
+// #11 FIX (Phase F Stage-2): boot-time probe-or-latch removed. The socket-proxy
+// DNS may not resolve at boot even though it's healthy moments later. Instead,
+// the connection is established lazily on the FIRST actual docker-control USE,
+// and cached on success. If the proxy is genuinely down at call time, the call
+// degrades gracefully (log + throw) without permanently latching docker-control
+// OFF. A subsequent call will retry.
 // =============================================================================
 
 import { getEnv } from "../config/env.js";
 import { log } from "./logger.js";
 
 let _baseUrl: string | null = null;
-let _enabled = false;
+let _connected = false;
 
 export async function initDockerControl(): Promise<void> {
   const env = getEnv();
   if (!env.DOCKER_HOST) {
     log.warn("DOCKER_HOST not set; docker-control is disabled (services/* will not work)");
-    _enabled = false;
+    _connected = false;
     return;
   }
   if (!env.DOCKER_HOST.startsWith("tcp://")) {
@@ -40,23 +47,13 @@ export async function initDockerControl(): Promise<void> {
     process.exit(1);
   }
   _baseUrl = env.DOCKER_HOST.replace(/\/+$/, "");
-  // Probe the proxy
-  try {
-    const response = await fetch(`${_baseUrl}/_ping`, { signal: AbortSignal.timeout(5_000) });
-    if (!response.ok) {
-      log.warn({ status: response.status }, "Socket-proxy ping non-2xx; docker-control is degraded");
-    } else {
-      _enabled = true;
-      log.info({ url: _baseUrl }, "Docker control connected to socket-proxy");
-    }
-  } catch (err) {
-    log.warn({ err: err instanceof Error ? err.message : String(err) }, "Socket-proxy unreachable; docker-control disabled");
-    _enabled = false;
-  }
+  // #11 FIX: No boot-time probe. Connection is established lazily on first use.
+  // This avoids false negatives when DNS/networking isn't warm at boot.
+  log.info({ url: _baseUrl }, "Docker control configured (lazy-connect; probe deferred to first use)");
 }
 
 export function isDockerControlEnabled(): boolean {
-  return _enabled;
+  return _connected;
 }
 
 interface DockerContainer {
@@ -68,15 +65,58 @@ interface DockerContainer {
   Created: number;
 }
 
+// ---------------------------------------------------------------------------
+// Lazy-connect: establish on first use, cache on success, retry on failure.
+// Non-fatal: if the proxy is genuinely down at call time, log + throw. The
+// next call will retry (no permanent latch).
+// ---------------------------------------------------------------------------
+async function ensureConnected(): Promise<void> {
+  if (_connected) return;
+  if (!_baseUrl) {
+    throw new Error("docker-control not configured (DOCKER_HOST unset)");
+  }
+
+  const MAX_ATTEMPTS = 3;
+  const BASE_DELAY_MS = 500;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const response = await fetch(`${_baseUrl}/_ping`, { signal: AbortSignal.timeout(5_000) });
+      if (!response.ok) {
+        log.warn({ status: response.status, attempt }, "Socket-proxy ping non-2xx");
+        if (attempt < MAX_ATTEMPTS) {
+          await new Promise(r => setTimeout(r, BASE_DELAY_MS * attempt));
+          continue;
+        }
+        throw new Error(`Socket-proxy ping returned ${response.status} after ${MAX_ATTEMPTS} attempts`);
+      }
+      _connected = true;
+      log.info({ url: _baseUrl, attempt }, "Docker control connected to socket-proxy");
+      return;
+    } catch (err) {
+      if (attempt < MAX_ATTEMPTS) {
+        const delay = BASE_DELAY_MS * attempt;
+        log.info({ attempt, maxAttempts: MAX_ATTEMPTS, delayMs: delay }, "Socket-proxy probe failed; retrying…");
+        await new Promise(r => setTimeout(r, delay));
+        continue;
+      }
+      const msg = err instanceof Error ? err.message : String(err);
+      // Non-fatal: log + throw (caller handles). Next call will retry.
+      log.warn({ err: msg, attempts: MAX_ATTEMPTS }, "Socket-proxy unreachable; docker-control degraded");
+      throw new Error(`docker-control not available: ${msg}`);
+    }
+  }
+}
+
 export async function list(): Promise<DockerContainer[]> {
-  assertEnabled();
+  await ensureConnected();
   const response = await fetch(`${_baseUrl}/containers/json?all=1`, { signal: AbortSignal.timeout(10_000) });
   if (!response.ok) throw new Error(`docker list failed: ${response.status}`);
   return (await response.json()) as DockerContainer[];
 }
 
 export async function inspect(name: string): Promise<unknown> {
-  assertEnabled();
+  await ensureConnected();
   assertSafeName(name);
   const response = await fetch(`${_baseUrl}/containers/${encodeURIComponent(name)}/json`, {
     signal: AbortSignal.timeout(10_000),
@@ -86,19 +126,19 @@ export async function inspect(name: string): Promise<unknown> {
 }
 
 export async function start(name: string): Promise<void> {
-  assertEnabled();
+  await ensureConnected();
   assertSafeName(name);
   await postAction(name, "start");
 }
 
 export async function stop(name: string): Promise<void> {
-  assertEnabled();
+  await ensureConnected();
   assertSafeName(name);
   await postAction(name, "stop");
 }
 
 export async function restart(name: string): Promise<void> {
-  assertEnabled();
+  await ensureConnected();
   assertSafeName(name);
   await postAction(name, "restart");
 }
@@ -111,7 +151,7 @@ export interface ContainerStats {
 }
 
 export async function stats(name: string): Promise<ContainerStats> {
-  assertEnabled();
+  await ensureConnected();
   assertSafeName(name);
   const response = await fetch(`${_baseUrl}/containers/${encodeURIComponent(name)}/stats?stream=false`, {
     signal: AbortSignal.timeout(10_000),
@@ -133,7 +173,7 @@ export async function stats(name: string): Promise<ContainerStats> {
 }
 
 export async function logs(name: string, tail = 100): Promise<string> {
-  assertEnabled();
+  await ensureConnected();
   assertSafeName(name);
   const response = await fetch(
     `${_baseUrl}/containers/${encodeURIComponent(name)}/logs?stdout=1&stderr=1&tail=${tail}`,
@@ -151,12 +191,6 @@ async function postAction(name: string, action: "start" | "stop" | "restart"): P
   if (!response.ok) {
     const text = await response.text().catch(() => "unknown");
     throw new Error(`docker ${action} ${name} failed: ${response.status} ${text.slice(0, 200)}`);
-  }
-}
-
-function assertEnabled(): void {
-  if (!_enabled) {
-    throw new Error("docker-control not enabled (DOCKER_HOST unset or proxy unreachable)");
   }
 }
 

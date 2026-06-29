@@ -61,6 +61,10 @@ build/
 next-env.d.ts
 tsconfig.tsbuildinfo
 
+# BUT @jarvis/shared/dist must be committed (it's a built artifact that the
+# api + hermes Dockerfiles COPY into the runner stage). F0 closure.
+!packages/shared/dist/
+
 # ===========================================
 # COVERAGE & TESTING
 # ===========================================
